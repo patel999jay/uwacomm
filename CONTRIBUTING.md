@@ -211,6 +211,43 @@ Updated to use 0x1021 polynomial.
 Fixes #123
 ```
 
+## Release Process
+
+### Automated Releases
+
+This project uses [python-semantic-release](https://python-semantic-release.readthedocs.io/)
+for automated versioning and releases.
+
+**How it works:**
+1. Push commits to `main` following Conventional Commits
+2. CI runs tests
+3. semantic-release analyzes commits and bumps version
+4. CHANGELOG.md updated automatically
+5. Git tag created
+6. GitHub Release published
+7. Package published to PyPI
+
+**Version bump rules:**
+- `feat:` → Minor (0.1.0 → 0.2.0)
+- `fix:` → Patch (0.1.0 → 0.1.1)
+- `BREAKING CHANGE:` in footer → Major (0.1.0 → 1.0.0)
+
+**Breaking change example:**
+```bash
+git commit -m "feat(codec): change encoding format
+
+BREAKING CHANGE: Encoding format changed from big-endian to little-endian."
+```
+
+### Manual Release (Emergency Only)
+
+If automation fails:
+1. Update version in `pyproject.toml` and `src/uwacomm/__init__.py`
+2. Update `CHANGELOG.md`
+3. `git commit -m "chore(release): v0.x.y"`
+4. `git tag -a v0.x.y -m "Release v0.x.y"`
+5. `git push origin main --tags`
+
 ## Areas for Contribution
 
 ### High Priority

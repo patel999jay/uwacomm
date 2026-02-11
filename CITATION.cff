@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+title: "uwacomm: Underwater Communications Codec"
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - family-names: Patel
+    given-names: Jay
+    email: patel999jay@gmail.com
+    orcid: "https://orcid.org/0000-0003-0811-3977"  # TODO: Add real ORCID if available
+repository-code: "https://github.com/patel999jay/uwacomm"
+url: "https://github.com/patel999jay/uwacomm"
+abstract: >
+  A Python library for compact binary encoding inspired by DCCL
+  (Dynamic Compact Control Language) from GobySoft. Designed for
+  bandwidth-constrained communications, particularly underwater
+  acoustic modems. Built on Pydantic v2 with DCCL-style bounded
+  field optimization for minimal message sizes.
+keywords:
+  - underwater-communications
+  - acoustic-modem
+  - binary-encoding
+  - compact-encoding
+  - dccl
+  - pydantic
+  - robotics
+license: MIT
+version: 0.1.0
+date-released: 2026-02-10
+references:
+  - type: software
+    title: "DCCL: Dynamic Compact Control Language"
+    authors:
+      - family-names: "Schneider"
+        given-names: "Toby"
+    repository-code: "https://github.com/GobySoft/dccl"
+    url: "https://libdccl.org/"
