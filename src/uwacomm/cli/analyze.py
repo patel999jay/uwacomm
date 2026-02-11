@@ -6,7 +6,7 @@ import importlib.util
 import inspect
 import sys
 from pathlib import Path
-from typing import Any, Type
+from typing import Any
 
 from ..codec.schema import MessageSchema
 from ..models.base import BaseMessage
@@ -30,7 +30,7 @@ def analyze_file(file_path: Path) -> None:
 
     # Find all BaseMessage subclasses
     message_classes = []
-    for name, obj in inspect.getmembers(module, inspect.isclass):
+    for _name, obj in inspect.getmembers(module, inspect.isclass):
         if obj is not BaseMessage and issubclass(obj, BaseMessage):
             # Only include classes defined in this file (not imported)
             if obj.__module__ == "user_module":
@@ -51,7 +51,7 @@ def analyze_file(file_path: Path) -> None:
         analyze_message_class(msg_class)
 
 
-def analyze_message_class(msg_class: Type[BaseMessage]) -> None:
+def analyze_message_class(msg_class: type[BaseMessage]) -> None:
     """Analyze a single message class and print detailed breakdown.
 
     Args:

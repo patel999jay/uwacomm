@@ -9,7 +9,7 @@ from __future__ import annotations
 import enum
 import math
 from dataclasses import dataclass
-from typing import Any, List, Optional, Type, get_args, get_origin
+from typing import Any, Optional, get_args, get_origin
 
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
@@ -37,14 +37,14 @@ class FieldSchema:
     """
 
     name: str
-    python_type: Type[Any]
+    python_type: type[Any]
     required: bool
     default: Any
-    min_value: Optional[int | float]
-    max_value: Optional[int | float]
-    min_length: Optional[int]
-    max_length: Optional[int]
-    enum_type: Optional[Type[enum.Enum]]
+    min_value: int | float | None
+    max_value: int | float | None
+    min_length: int | None
+    max_length: int | None
+    enum_type: type[enum.Enum] | None
     is_list: bool
     is_bytes: bool
     is_str: bool
@@ -151,18 +151,18 @@ class MessageSchema:
         ...     print(f"{field.name}: {field.bits_required()} bits")
     """
 
-    def __init__(self, model_class: Type[BaseModel]) -> None:
+    def __init__(self, model_class: type[BaseModel]) -> None:
         """Initialize schema from a Pydantic model.
 
         Args:
             model_class: Pydantic model class to introspect
         """
         self.model_class = model_class
-        self.fields: List[FieldSchema] = []
+        self.fields: list[FieldSchema] = []
         self._introspect()
 
     @classmethod
-    def from_model(cls, model_class: Type[BaseModel]) -> MessageSchema:
+    def from_model(cls, model_class: type[BaseModel]) -> MessageSchema:
         """Create a schema from a Pydantic model.
 
         Args:

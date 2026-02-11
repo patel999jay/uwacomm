@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import enum
 import random
-from typing import ClassVar, List, Optional
+from typing import ClassVar
 
 from pydantic import Field
 
@@ -44,8 +44,8 @@ class StatusReport(BaseMessage):
     priority: Priority = Field(description="Message priority")
     emergency: bool = Field(description="Emergency flag")
 
-    uwacomm_id: ClassVar[Optional[int]] = 1
-    uwacomm_max_bytes: ClassVar[Optional[int]] = 8
+    uwacomm_id: ClassVar[int | None] = 1
+    uwacomm_max_bytes: ClassVar[int | None] = 8
 
 
 class WaypointCommand(BaseMessage):
@@ -56,8 +56,8 @@ class WaypointCommand(BaseMessage):
     target_depth_dm: int = Field(ge=0, le=1000, description="Target depth in decimeters")
     speed_dmps: int = Field(ge=0, le=50, description="Speed in decimeters per second")
 
-    uwacomm_id: ClassVar[Optional[int]] = 2
-    uwacomm_max_bytes: ClassVar[Optional[int]] = 8
+    uwacomm_id: ClassVar[int | None] = 2
+    uwacomm_max_bytes: ClassVar[int | None] = 8
 
 
 class AcousticModem:
@@ -150,7 +150,7 @@ def main() -> None:
 
     # Encode and frame messages
     print("2. Encoding and framing messages...")
-    frames: List[bytes] = []
+    frames: list[bytes] = []
 
     for vehicle in vehicles:
         encoded = encode(vehicle)
@@ -177,7 +177,7 @@ def main() -> None:
         try:
             msg_id, payload = unframe_with_id(received, crc="crc16")
             decode(StatusReport, payload)
-            print(f"     ✓ Transmitted successfully")
+            print("     ✓ Transmitted successfully")
             successful += 1
         except (FramingError, DecodeError) as e:
             print(f"     ✗ Transmission error: {type(e).__name__}")
@@ -234,7 +234,7 @@ def main() -> None:
     json_tx_time = (json_size * 8) / modem.bandwidth_bps
     uwacomm_tx_time = (uwacomm_size * 8) / modem.bandwidth_bps
 
-    print(f"   Transmission time (80 bps channel):")
+    print("   Transmission time (80 bps channel):")
     print(f"     uwacomm: {uwacomm_tx_time:.1f} seconds")
     print(f"     JSON: {json_tx_time:.1f} seconds")
     print(f"     Time saved: {json_tx_time - uwacomm_tx_time:.1f} seconds")

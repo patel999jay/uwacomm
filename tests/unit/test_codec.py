@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import enum
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 import pytest
 from pydantic import Field
@@ -189,7 +189,7 @@ class TestMaxBytesConstraint:
         class ConstrainedMessage(BaseMessage):
             value: int = Field(ge=0, le=255)
 
-            uwacomm_max_bytes: ClassVar[Optional[int]] = 10
+            uwacomm_max_bytes: ClassVar[int | None] = 10
 
         msg = ConstrainedMessage(value=42)
         data = encode(msg)
@@ -201,7 +201,7 @@ class TestMaxBytesConstraint:
         class TooLargeMessage(BaseMessage):
             data: bytes = Field(min_length=100, max_length=100)
 
-            uwacomm_max_bytes: ClassVar[Optional[int]] = 50
+            uwacomm_max_bytes: ClassVar[int | None] = 50
 
         msg = TooLargeMessage(data=b"\x00" * 100)
 

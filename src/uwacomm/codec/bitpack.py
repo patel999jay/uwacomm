@@ -6,8 +6,6 @@ All operations are deterministic and big-endian by default.
 
 from __future__ import annotations
 
-from typing import List
-
 
 class BitPacker:
     """Packs values bit-by-bit into a byte buffer.
@@ -25,7 +23,7 @@ class BitPacker:
 
     def __init__(self) -> None:
         """Initialize an empty bit packer."""
-        self._bits: List[int] = []  # List of 0s and 1s
+        self._bits: list[int] = []  # List of 0s and 1s
 
     def write_bool(self, value: bool) -> None:
         """Write a boolean as a single bit.
@@ -150,7 +148,7 @@ class BitUnpacker:
         Args:
             data: Byte buffer to unpack
         """
-        self._bits: List[int] = []
+        self._bits: list[int] = []
         for byte in data:
             for i in range(7, -1, -1):
                 self._bits.append((byte >> i) & 1)

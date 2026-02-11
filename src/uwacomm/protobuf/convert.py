@@ -7,7 +7,6 @@ and document conversion strategies between Pydantic and Protobuf.
 from __future__ import annotations
 
 import enum
-from typing import Type
 
 from pydantic import BaseModel
 
@@ -16,7 +15,7 @@ from ..exceptions import SchemaError
 
 
 def to_proto_schema(
-    message_class: Type[BaseModel],
+    message_class: type[BaseModel],
     *,
     package: str = "",
     syntax: str = "proto3",
@@ -175,7 +174,7 @@ def _field_comment(field_schema) -> str:  # type: ignore[no-untyped-def]
     return " | ".join(comments)
 
 
-def _enum_to_proto(enum_type: Type[enum.Enum]) -> list[str]:
+def _enum_to_proto(enum_type: type[enum.Enum]) -> list[str]:
     """Convert a Python enum to Protobuf enum definition.
 
     Args:

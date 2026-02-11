@@ -10,7 +10,7 @@ This example demonstrates:
 from __future__ import annotations
 
 import enum
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from pydantic import Field
 
@@ -52,8 +52,8 @@ class UnderwaterVehicleStatus(BaseMessage):
     water_detected: bool = Field(description="Water intrusion alarm")
     emergency: bool = Field(description="Emergency flag")
 
-    uwacomm_max_bytes: ClassVar[Optional[int]] = 64
-    uwacomm_id: ClassVar[Optional[int]] = 100
+    uwacomm_max_bytes: ClassVar[int | None] = 64
+    uwacomm_id: ClassVar[int | None] = 100
 
 
 def main() -> None:
@@ -106,7 +106,7 @@ def main() -> None:
     print("4. Encoding Size Analysis:")
     print()
 
-    from uwacomm import encode, encoded_size, field_sizes
+    from uwacomm import encoded_size, field_sizes
 
     msg = UnderwaterVehicleStatus(
         vehicle_id=42,

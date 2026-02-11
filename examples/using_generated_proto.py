@@ -30,7 +30,7 @@ from __future__ import annotations
 import enum
 import sys
 from pathlib import Path
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from pydantic import Field
 
@@ -71,8 +71,8 @@ class UnderwaterVehicleStatus(BaseMessage):
     water_detected: bool = Field(description="Water intrusion alarm")
     emergency: bool = Field(description="Emergency flag")
 
-    uwacomm_max_bytes: ClassVar[Optional[int]] = 64
-    uwacomm_id: ClassVar[Optional[int]] = 100
+    uwacomm_max_bytes: ClassVar[int | None] = 64
+    uwacomm_id: ClassVar[int | None] = 100
 
 
 def main() -> None:

@@ -6,15 +6,12 @@ without actually encoding them.
 
 from __future__ import annotations
 
-from typing import Type, Union
-
 from pydantic import BaseModel
 
 from ..codec.schema import MessageSchema
-from ..exceptions import SchemaError
 
 
-def encoded_size(message_or_class: Union[BaseModel, Type[BaseModel]]) -> int:
+def encoded_size(message_or_class: BaseModel | type[BaseModel]) -> int:
     """Calculate the encoded size of a message in bytes.
 
     This function can take either a message instance or a message class.
@@ -53,7 +50,7 @@ def encoded_size(message_or_class: Union[BaseModel, Type[BaseModel]]) -> int:
     return schema.total_bytes()
 
 
-def encoded_bits(message_or_class: Union[BaseModel, Type[BaseModel]]) -> int:
+def encoded_bits(message_or_class: BaseModel | type[BaseModel]) -> int:
     """Calculate the encoded size of a message in bits.
 
     Args:
@@ -82,7 +79,7 @@ def encoded_bits(message_or_class: Union[BaseModel, Type[BaseModel]]) -> int:
     return schema.total_bits()
 
 
-def field_sizes(message_or_class: Union[BaseModel, Type[BaseModel]]) -> dict[str, int]:
+def field_sizes(message_or_class: BaseModel | type[BaseModel]) -> dict[str, int]:
     """Get the size in bits of each field in a message.
 
     Args:

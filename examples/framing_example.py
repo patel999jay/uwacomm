@@ -9,7 +9,7 @@ This example demonstrates:
 
 from __future__ import annotations
 
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from pydantic import Field
 
@@ -23,7 +23,7 @@ class StatusReport(BaseMessage):
     depth_cm: int = Field(ge=0, le=10000)
     battery_pct: int = Field(ge=0, le=100)
 
-    uwacomm_id: ClassVar[Optional[int]] = 10
+    uwacomm_id: ClassVar[int | None] = 10
 
 
 class CommandMessage(BaseMessage):
@@ -32,7 +32,7 @@ class CommandMessage(BaseMessage):
     target_depth_cm: int = Field(ge=0, le=10000)
     emergency_surface: bool
 
-    uwacomm_id: ClassVar[Optional[int]] = 20
+    uwacomm_id: ClassVar[int | None] = 20
 
 
 def main() -> None:
@@ -50,7 +50,7 @@ def main() -> None:
     status_encoded = encode(status)
     command_encoded = encode(command)
 
-    print(f"1. Raw message sizes:")
+    print("1. Raw message sizes:")
     print(f"   Status: {len(status_encoded)} bytes")
     print(f"   Command: {len(command_encoded)} bytes")
     print()
@@ -88,14 +88,14 @@ def main() -> None:
         # Route based on message ID
         if msg_id == 10:
             decoded = decode(StatusReport, payload)
-            print(f"     Type: StatusReport")
+            print("     Type: StatusReport")
             print(f"     Vehicle: {decoded.vehicle_id}")
             print(f"     Depth: {decoded.depth_cm} cm")
             print(f"     Battery: {decoded.battery_pct}%")
 
         elif msg_id == 20:
             decoded = decode(CommandMessage, payload)
-            print(f"     Type: CommandMessage")
+            print("     Type: CommandMessage")
             print(f"     Target depth: {decoded.target_depth_cm} cm")
             print(f"     Emergency surface: {decoded.emergency_surface}")
 

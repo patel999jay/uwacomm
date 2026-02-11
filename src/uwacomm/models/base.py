@@ -6,7 +6,7 @@ It also defines configuration options inspired by DCCL.
 
 from __future__ import annotations
 
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar
 
 from pydantic import BaseModel, ConfigDict
 
@@ -49,9 +49,9 @@ class BaseMessage(BaseModel):
     )
 
     # uwacomm-specific class variables (optional)
-    uwacomm_max_bytes: ClassVar[Optional[int]] = None
-    uwacomm_id: ClassVar[Optional[int]] = None
-    uwacomm_codec: ClassVar[Optional[str]] = None
+    uwacomm_max_bytes: ClassVar[int | None] = None
+    uwacomm_id: ClassVar[int | None] = None
+    uwacomm_codec: ClassVar[str | None] = None
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Hook called when a subclass is created.

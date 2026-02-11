@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import enum
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 import pytest
 from pydantic import Field
@@ -39,8 +39,8 @@ class StatusReport(BaseMessage):
     battery_pct: int = Field(ge=0, le=100, description="Battery percentage")
     emergency: bool = Field(description="Emergency flag")
 
-    uwacomm_max_bytes: ClassVar[Optional[int]] = 32
-    uwacomm_id: ClassVar[Optional[int]] = 10
+    uwacomm_max_bytes: ClassVar[int | None] = 32
+    uwacomm_id: ClassVar[int | None] = 10
 
 
 class CommandMessage(BaseMessage):

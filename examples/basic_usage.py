@@ -85,7 +85,6 @@ def main() -> None:
 
     # Compare to naive encoding
     print("6. Comparing to naive JSON encoding...")
-    import json
 
     json_str = msg.model_dump_json()
     json_bytes = json_str.encode("utf-8")

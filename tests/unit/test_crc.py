@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from uwacomm.utils.crc import (
     crc16,
     crc16_bytes,

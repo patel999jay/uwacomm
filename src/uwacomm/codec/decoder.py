@@ -6,18 +6,18 @@ back to a Pydantic message instance.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Type, TypeVar
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
-from ..exceptions import DecodeError, SchemaError
+from ..exceptions import DecodeError
 from .bitpack import BitUnpacker
 from .schema import FieldSchema, MessageSchema
 
 T = TypeVar("T", bound=BaseModel)
 
 
-def decode(message_class: Type[T], data: bytes) -> T:
+def decode(message_class: type[T], data: bytes) -> T:
     """Decode compact binary data to a Pydantic message.
 
     This function uses schema introspection to decode fields in the same order
@@ -45,7 +45,7 @@ def decode(message_class: Type[T], data: bytes) -> T:
     unpacker = BitUnpacker(data)
 
     # Decode each field
-    field_values: Dict[str, Any] = {}
+    field_values: dict[str, Any] = {}
     for field_schema in schema.fields:
         try:
             value = _decode_field(unpacker, field_schema)

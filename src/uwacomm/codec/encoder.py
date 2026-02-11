@@ -6,12 +6,11 @@ instance to compact binary format using DCCL-inspired bounded field optimization
 
 from __future__ import annotations
 
-import enum
 from typing import Any
 
 from pydantic import BaseModel
 
-from ..exceptions import EncodeError, SchemaError
+from ..exceptions import EncodeError
 from .bitpack import BitPacker
 from .schema import FieldSchema, MessageSchema
 
@@ -104,10 +103,10 @@ def _encode_field(packer: BitPacker, field_schema: FieldSchema, value: Any) -> N
         enum_values = list(field_schema.enum_type)
         try:
             ordinal = enum_values.index(value)
-        except ValueError:
+        except ValueError as err:
             raise EncodeError(
                 f"Field {field_schema.name}: {value} not in {field_schema.enum_type.__name__}"
-            )
+            ) from err
 
         num_bits = field_schema.bits_required()
         packer.write_uint(ordinal, num_bits)

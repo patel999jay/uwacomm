@@ -7,10 +7,10 @@ for reliable transmission over acoustic channels.
 from __future__ import annotations
 
 import struct
-from typing import Literal, Optional
+from typing import Literal
 
 from ..exceptions import FramingError
-from ..utils.crc import crc16, crc16_bytes, crc32, crc32_bytes, verify_crc16, verify_crc32
+from ..utils.crc import crc16_bytes, crc32_bytes, verify_crc16, verify_crc32
 
 CRCType = Literal["crc16", "crc32"]
 
@@ -19,7 +19,7 @@ def frame_message(
     payload: bytes,
     *,
     length_prefix: bool = True,
-    crc: Optional[CRCType] = None,
+    crc: CRCType | None = None,
 ) -> bytes:
     """Frame a message with optional length prefix and CRC.
 
@@ -66,7 +66,7 @@ def unframe_message(
     framed: bytes,
     *,
     length_prefix: bool = True,
-    crc: Optional[CRCType] = None,
+    crc: CRCType | None = None,
     validate_length: bool = True,
 ) -> bytes:
     """Unframe a message and validate length/CRC.
@@ -95,7 +95,7 @@ def unframe_message(
     position = 0
 
     # Read length prefix
-    expected_payload_length: Optional[int] = None
+    expected_payload_length: int | None = None
     if length_prefix:
         if len(framed) < 4:
             raise FramingError(f"Frame too short for length prefix: {len(framed)} bytes")
@@ -123,12 +123,11 @@ def unframe_message(
     payload = framed[position:payload_end]
 
     # Validate length if length prefix present
-    if length_prefix and validate_length and expected_payload_length is not None:
-        if len(payload) != expected_payload_length:
-            raise FramingError(
-                f"Length mismatch: prefix says {expected_payload_length} bytes, "
-                f"but got {len(payload)} bytes"
-            )
+    if length_prefix and validate_length and expected_payload_length is not None and len(payload) != expected_payload_length:
+        raise FramingError(
+            f"Length mismatch: prefix says {expected_payload_length} bytes, "
+            f"but got {len(payload)} bytes"
+        )
 
     # Verify CRC (computed over everything except the CRC itself)
     if crc is not None:
@@ -149,7 +148,7 @@ def frame_with_id(
     payload: bytes,
     message_id: int,
     *,
-    crc: Optional[CRCType] = None,
+    crc: CRCType | None = None,
 ) -> bytes:
     """Frame a message with a message ID and optional CRC.
 
@@ -197,7 +196,7 @@ def frame_with_id(
 def unframe_with_id(
     framed: bytes,
     *,
-    crc: Optional[CRCType] = None,
+    crc: CRCType | None = None,
 ) -> tuple[int, bytes]:
     """Unframe a message with message ID.
 
