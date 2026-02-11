@@ -11,6 +11,7 @@ from typing import Any, cast
 from pydantic import Field
 from pydantic.fields import FieldInfo
 
+
 def BoundedInt(*, ge: int | None = None, le: int | None = None, **kwargs: Any) -> FieldInfo:
     """Create a bounded integer field.
 
