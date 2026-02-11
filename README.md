@@ -6,6 +6,7 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/uwacomm.svg)](https://pypi.org/project/uwacomm/)
 [![License](https://img.shields.io/pypi/l/uwacomm.svg)](https://github.com/patel999jay/uwacomm/blob/main/LICENSE)
 [![CI](https://github.com/patel999jay/uwacomm/workflows/CI/badge.svg)](https://github.com/patel999jay/uwacomm/actions)
+[![DOI](https://zenodo.org/badge/1155013172.svg)](https://doi.org/10.5281/zenodo.18604387)
 
 ---
 
