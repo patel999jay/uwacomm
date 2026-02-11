@@ -6,32 +6,34 @@ message fields with DCCL-style constraints.
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 from pydantic import Field
+from pydantic.fields import FieldInfo
 
-
-def BoundedInt(min_val: int, max_val: int, **kwargs) -> int:  # type: ignore[valid-type]
+def BoundedInt(*, ge: int | None = None, le: int | None = None, **kwargs: Any) -> FieldInfo:
     """Create a bounded integer field.
 
     This is a convenience wrapper around Pydantic's Field() that ensures
     both ge= and le= constraints are set for compact encoding.
 
     Args:
-        min_val: Minimum value (inclusive)
-        max_val: Maximum value (inclusive)
+        ge: Minimum value (inclusive)
+        le: Maximum value (inclusive)
         **kwargs: Additional Field() arguments (description, default, etc.)
 
     Returns:
-        Annotated type suitable for use as a field annotation
+        Pydantic FieldInfo suitable for use as a field default/metadata.
 
     Example:
         >>> class Message(BaseMessage):
-        ...     vehicle_id: Annotated[int, BoundedInt(0, 255)]
-        ...     depth_cm: Annotated[int, BoundedInt(0, 10000)]
+        ...     vehicle_id: Annotated[int, BoundedInt(ge=0, le=255)]
+        ...     depth_cm: Annotated[int, BoundedInt(ge=0, le=10000)]
     """
-    return Field(ge=min_val, le=max_val, **kwargs)  # type: ignore[return-value]
+    return cast(FieldInfo, Field(ge=ge, le=le, **kwargs))
 
 
-def FixedBytes(length: int, **kwargs) -> bytes:  # type: ignore[valid-type]
+def FixedBytes(*, length: int, **kwargs: Any) -> FieldInfo:
     """Create a fixed-length bytes field.
 
     Args:
@@ -39,16 +41,16 @@ def FixedBytes(length: int, **kwargs) -> bytes:  # type: ignore[valid-type]
         **kwargs: Additional Field() arguments
 
     Returns:
-        Annotated type suitable for use as a field annotation
+        Pydantic FieldInfo suitable for use as a field default/metadata.
 
     Example:
         >>> class Message(BaseMessage):
-        ...     payload: Annotated[bytes, FixedBytes(16)]
+        ...     payload: Annotated[bytes, FixedBytes(length=16)]
     """
-    return Field(min_length=length, max_length=length, **kwargs)  # type: ignore[return-value]
+    return cast(FieldInfo, Field(min_length=length, max_length=length, **kwargs))
 
 
-def FixedStr(length: int, **kwargs) -> str:  # type: ignore[valid-type]
+def FixedStr(*, length: int, **kwargs: Any) -> FieldInfo:
     """Create a fixed-length string field.
 
     Args:
@@ -56,10 +58,36 @@ def FixedStr(length: int, **kwargs) -> str:  # type: ignore[valid-type]
         **kwargs: Additional Field() arguments
 
     Returns:
-        Annotated type suitable for use as a field annotation
+        Pydantic FieldInfo suitable for use as a field default/metadata.
 
     Example:
         >>> class Message(BaseMessage):
-        ...     callsign: Annotated[str, FixedStr(8)]
+        ...     callsign: Annotated[str, FixedStr(length=8)]
     """
-    return Field(min_length=length, max_length=length, **kwargs)  # type: ignore[return-value]
+    return cast(FieldInfo, Field(min_length=length, max_length=length, **kwargs))
+
+
+def FixedInt(*, bits: int, signed: bool = False, **kwargs: Any) -> FieldInfo:
+    """Create a fixed-size integer field.
+
+    This is a convenience function to specify the bit width and signedness of an
+    integer field. The actual constraints (ge=, le=) are not automatically applied,
+    but the metadata can be used by the encoder to determine how to pack the field.
+
+    Args:
+        bits: Number of bits (e.g. 8, 16, 32)
+        signed: Whether the integer is signed (default False)
+        **kwargs: Additional Field() arguments
+
+    Returns:
+        Pydantic FieldInfo suitable for use as a field default/metadata.
+
+    Example:
+        >>> class Message(BaseMessage):
+        ...     temperature: Annotated[int, FixedInt(bits=16, signed=True)]
+
+    Note:
+        ``bits`` and ``signed`` are stored as extra metadata for uwacomm. They do not
+        enforce constraints by themselves, but may be used by the encoder.
+    """
+    return cast(FieldInfo, Field(json_schema_extra={"bits": bits, "signed": signed}, **kwargs))

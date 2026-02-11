@@ -7,6 +7,7 @@ and document conversion strategies between Pydantic and Protobuf.
 from __future__ import annotations
 
 import enum
+from typing import cast
 
 from pydantic import BaseModel
 
@@ -103,7 +104,7 @@ def _python_type_to_proto(field_schema) -> str:  # type: ignore[no-untyped-def]
 
     # Enum
     if field_schema.enum_type is not None:
-        return field_schema.enum_type.__name__
+        return cast(str, field_schema.enum_type.__name__)
 
     # Integer (use smallest matching protobuf type)
     if field_schema.python_type is int:
