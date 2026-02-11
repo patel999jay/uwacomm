@@ -57,7 +57,9 @@ def main() -> None:
 
     # Frame with message IDs and CRC
     print("2. Framing messages with ID and CRC-32...")
-    status_framed = frame_with_id(status_encoded, message_id=StatusReport.uwacomm_id or 0, crc="crc32")
+    status_framed = frame_with_id(
+        status_encoded, message_id=StatusReport.uwacomm_id or 0, crc="crc32"
+    )
     command_framed = frame_with_id(
         command_encoded, message_id=CommandMessage.uwacomm_id or 0, crc="crc32"
     )

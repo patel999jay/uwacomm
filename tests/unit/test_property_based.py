@@ -37,9 +37,7 @@ class TestCodecProperties:
         flag1=st.booleans(),
         flag2=st.booleans(),
     )
-    def test_encode_deterministic(
-        self, value1: int, flag1: bool, value2: int, flag2: bool
-    ) -> None:
+    def test_encode_deterministic(self, value1: int, flag1: bool, value2: int, flag2: bool) -> None:
         """Test encoding is deterministic."""
         msg1a = BoundedMessage(value=value1, flag=flag1)
         msg1b = BoundedMessage(value=value1, flag=flag1)

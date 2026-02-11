@@ -55,9 +55,7 @@ def decode(message_class: Type[T], data: bytes) -> T:
                 f"Truncated data while decoding field {field_schema.name}: {e}"
             ) from e
         except Exception as e:
-            raise DecodeError(
-                f"Error decoding field {field_schema.name}: {e}"
-            ) from e
+            raise DecodeError(f"Error decoding field {field_schema.name}: {e}") from e
 
     # Create message instance
     try:
@@ -135,9 +133,7 @@ def _decode_field(unpacker: BitUnpacker, field_schema: FieldSchema) -> Any:
         try:
             return raw_bytes.decode("utf-8")
         except UnicodeDecodeError as e:
-            raise DecodeError(
-                f"Field {field_schema.name}: invalid UTF-8 encoding: {e}"
-            ) from e
+            raise DecodeError(f"Field {field_schema.name}: invalid UTF-8 encoding: {e}") from e
 
     # Unsupported type
     raise DecodeError(

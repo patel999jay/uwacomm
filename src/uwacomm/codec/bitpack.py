@@ -52,9 +52,7 @@ class BitPacker:
 
         max_value = (1 << num_bits) - 1
         if value > max_value:
-            raise ValueError(
-                f"Value {value} requires more than {num_bits} bits (max: {max_value})"
-            )
+            raise ValueError(f"Value {value} requires more than {num_bits} bits (max: {max_value})")
 
         # Write bits from most significant to least significant (big-endian)
         for i in range(num_bits - 1, -1, -1):

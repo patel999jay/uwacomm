@@ -223,7 +223,7 @@ def main() -> None:
 
     import json
 
-    json_size = sum(len(json.dumps(v.model_dump(mode='json')).encode()) for v in vehicles)
+    json_size = sum(len(json.dumps(v.model_dump(mode="json")).encode()) for v in vehicles)
     uwacomm_size = sum(len(encode(v)) for v in vehicles)
 
     print(f"   uwacomm: {uwacomm_size} bytes")

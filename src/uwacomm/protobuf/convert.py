@@ -163,9 +163,7 @@ def _field_comment(field_schema) -> str:  # type: ignore[no-untyped-def]
         if field_schema.min_length == field_schema.max_length:
             comments.append(f"Fixed length: {field_schema.max_length}")
         else:
-            comments.append(
-                f"Length: [{field_schema.min_length or 0}, {field_schema.max_length}]"
-            )
+            comments.append(f"Length: [{field_schema.min_length or 0}, {field_schema.max_length}]")
 
     # Bits required (uwacomm-specific)
     try:

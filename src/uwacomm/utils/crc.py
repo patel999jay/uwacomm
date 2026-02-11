@@ -110,7 +110,9 @@ def crc32_bytes(data: bytes) -> bytes:
     return struct.pack(">I", crc)  # Big-endian unsigned int
 
 
-def verify_crc16(data: bytes, expected_crc: int | bytes, poly: int = 0x1021, init: int = 0xFFFF) -> bool:
+def verify_crc16(
+    data: bytes, expected_crc: int | bytes, poly: int = 0x1021, init: int = 0xFFFF
+) -> bool:
     """Verify CRC-16 checksum.
 
     Args:
