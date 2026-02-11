@@ -123,7 +123,12 @@ def unframe_message(
     payload = framed[position:payload_end]
 
     # Validate length if length prefix present
-    if length_prefix and validate_length and expected_payload_length is not None and len(payload) != expected_payload_length:
+    if (
+        length_prefix
+        and validate_length
+        and expected_payload_length is not None
+        and len(payload) != expected_payload_length
+    ):
         raise FramingError(
             f"Length mismatch: prefix says {expected_payload_length} bytes, "
             f"but got {len(payload)} bytes"
