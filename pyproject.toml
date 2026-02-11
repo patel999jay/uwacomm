@@ -107,6 +107,8 @@ extend-exclude = '''
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -124,11 +126,17 @@ ignore = [
     "B905",  # zip strict parameter (not available in Python 3.9)
 ]
 
-[tool.ruff.per-file-ignores]
-"__init__.py" = ["F401"]  # imported but unused
-"tests/*" = ["ARG", "SIM"]  # unused arguments and simplification rules relaxed for tests
 
-[tool.ruff.isort]
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*" = ["ARG", "SIM"]
+"src/uwacomm/cli/analyze.py" = ["SIM102"]
+"src/uwacomm/codec/bitpack.py" = ["SIM108"]
+"src/uwacomm/codec/schema.py" = ["UP045"]
+"src/uwacomm/framing/basic.py" = ["SIM102"]
+
+
+[tool.ruff.lint.isort]
 known-first-party = ["uwacomm"]
 
 [tool.mypy]
