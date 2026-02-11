@@ -55,12 +55,10 @@ def encode(message: BaseModel) -> bytes:
 
     # Check max_bytes constraint if present
     max_bytes = getattr(type(message), "uwacomm_max_bytes", None)
-    if max_bytes is not None:
-        if len(encoded) > max_bytes:
-            raise EncodeError(
-                f"Encoded message size ({len(encoded)} bytes) exceeds "
-                f"uwacomm_max_bytes={max_bytes}"
-            )
+    if max_bytes is not None and len(encoded) > max_bytes:
+        raise EncodeError(
+            f"Encoded message size ({len(encoded)} bytes) exceeds " f"uwacomm_max_bytes={max_bytes}"
+        )
 
     return encoded
 
