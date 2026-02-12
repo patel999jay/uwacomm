@@ -1,10 +1,10 @@
-site_name: pydccl Documentation
+site_name: uwacomm Documentation
 site_description: Python DCCL-inspired compact binary encoding for underwater communications
 site_author: Jay Patel
-site_url: https://pydccl.readthedocs.io
+site_url: https://uwacomm.readthedocs.io
 
-repo_name: patel999jay/pydccl
-repo_url: https://github.com/patel999jay/pydccl
+repo_name: patel999jay/uwacomm
+repo_url: https://github.com/patel999jay/uwacomm
 
 theme:
   name: material
@@ -35,6 +35,8 @@ nav:
   - User Guide:
       - Getting Started: user_guide/getting_started.md
       - Message Definition: user_guide/message_definition.md
+      - Multi-Mode Encoding: user_guide/multi_mode_encoding.md
+      - Float Encoding: user_guide/float_encoding.md
       - Encoding and Decoding: user_guide/encoding.md
       - Framing: user_guide/framing.md
       - Protobuf Interop: user_guide/protobuf.md

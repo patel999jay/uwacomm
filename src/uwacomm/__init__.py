@@ -42,7 +42,16 @@ from .exceptions import (
 )
 from .framing import frame_message, frame_with_id, unframe_message, unframe_with_id
 from .models import BaseMessage, BoundedInt, FixedBytes, FixedStr
+from .models.fields import BoundedFloat
 from .protobuf import proto_conversion_notes, to_proto_schema
+from .routing import (
+    MESSAGE_REGISTRY,
+    RoutingHeader,
+    decode_by_id,
+    decode_with_routing,
+    encode_with_routing,
+    register_message,
+)
 from .utils import (
     crc16,
     crc16_bytes,
@@ -64,8 +73,16 @@ __all__ = [
     "decode",
     # Field helpers
     "BoundedInt",
+    "BoundedFloat",
     "FixedBytes",
     "FixedStr",
+    # Routing (Mode 2: Self-Describing Messages, Mode 3: Multi-Vehicle Routing)
+    "register_message",
+    "decode_by_id",
+    "MESSAGE_REGISTRY",
+    "RoutingHeader",
+    "encode_with_routing",
+    "decode_with_routing",
     # Exceptions
     "UwacommError",
     "PyDCCLError",  # Backward compatibility alias

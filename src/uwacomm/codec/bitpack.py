@@ -198,6 +198,38 @@ class BitUnpacker:
 
         return value
 
+    def peek_uint(self, num_bits: int) -> int:
+        """Peek at the next N bits without consuming them.
+
+        This is useful for inspecting message IDs or headers without
+        advancing the read position.
+
+        Args:
+            num_bits: Number of bits to peek at (1-64)
+
+        Returns:
+            Unsigned integer value
+
+        Raises:
+            ValueError: If num_bits is out of range
+            IndexError: If not enough bits are available
+        """
+        if num_bits < 1 or num_bits > 64:
+            raise ValueError(f"num_bits must be 1-64, got {num_bits}")
+
+        if self._position + num_bits > len(self._bits):
+            raise IndexError(
+                f"Not enough bits: need {num_bits}, have {len(self._bits) - self._position}"
+            )
+
+        value = 0
+        pos = self._position  # Use temporary position
+        for _ in range(num_bits):
+            value = (value << 1) | self._bits[pos]
+            pos += 1
+
+        return value
+
     def read_int(self, num_bits: int) -> int:
         """Read a signed integer using two's complement encoding.
 
