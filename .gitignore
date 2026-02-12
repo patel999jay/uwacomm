@@ -154,3 +154,9 @@ examples/simulate_uw_comms.py
 examples/test_uw_messages.py
 examples/uw_vehicle_messages.py
 DOCS_BUILD.md
+examples/dccl_vs_uwacomm_comparison.py
+examples/encode_with_dccl.py
+examples/generic_uw_messages.proto
+examples/RUN_DCCL_ANALYSIS.md
+examples/validate_claims.py
+examples/verify_dccl_sizes.sh
