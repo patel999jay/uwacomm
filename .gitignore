@@ -140,3 +140,11 @@ PROTOBUF_EXAMPLE_FIX.md
 underwater_vehicle_status.proto
 *_pb2.py
 *_pb2.pyi
+
+examples/uw_messages.proto
+examples/uw_vehicle_messages.proto
+examples/README_UW_SIMULATION.md
+examples/compare_dccl_vs_uwacomm.py
+examples/simulate_uw_comms.py
+examples/test_uw_messages.py
+examples/uw_vehicle_messages.py
