@@ -160,3 +160,4 @@ examples/generic_uw_messages.proto
 examples/RUN_DCCL_ANALYSIS.md
 examples/validate_claims.py
 examples/verify_dccl_sizes.sh
+GITEA_SETUP.md
