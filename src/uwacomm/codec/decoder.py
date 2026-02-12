@@ -193,22 +193,22 @@ def _decode_field(unpacker: BitUnpacker, field_schema: FieldSchema) -> Any:
             raise DecodeError(f"Field {field_schema.name}: float requires min/max bounds")
 
         precision = field_schema.precision or 0
-        min_val = float(field_schema.min_value)
-        max_val = float(field_schema.max_value)
+        min_float = float(field_schema.min_value)
+        max_float = float(field_schema.max_value)
 
         # Decode scaled integer
-        max_scaled = round((max_val - min_val) * (10**precision))
+        max_scaled = round((max_float - min_float) * (10**precision))
         num_bits = field_schema._bits_for_bounded_int(0, max_scaled)
         scaled = unpacker.read_uint(num_bits)
 
         # Descale to float
-        value = min_val + (scaled / (10**precision))
+        value = min_float + (scaled / (10**precision))
 
         # Validate bounds (defensive check)
-        if value < min_val or value > max_val:
+        if value < min_float or value > max_float:
             raise DecodeError(
                 f"Field {field_schema.name}: decoded value {value} out of bounds "
-                f"[{min_val}, {max_val}]"
+                f"[{min_float}, {max_float}]"
             )
 
         return value

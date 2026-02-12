@@ -8,7 +8,7 @@ This module provides:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TypeVar
+from typing import TypeVar, cast
 
 from pydantic import BaseModel
 
@@ -129,8 +129,8 @@ def decode_by_id(data: bytes) -> BaseModel:
             f"Did you forget to call register_message()?"
         )
 
-    # Decode with ID validation
-    return _decode_base(message_class, data, include_id=True)
+    # Decode with ID validation (routing=False, so returns T not tuple)
+    return cast(BaseModel, _decode_base(message_class, data, include_id=True))
 
 
 # ============================================================================
@@ -169,7 +169,7 @@ class RoutingHeader:
     priority: int = 0  # 0-3 (0=low, 3=high)
     ack_requested: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate routing header values."""
         if not 0 <= self.source_id <= 255:
             raise ValueError(f"source_id must be 0-255, got {self.source_id}")
@@ -245,7 +245,7 @@ def decode_with_routing(message_class: type[T], data: bytes) -> tuple[RoutingHea
             print("ACK requested - send acknowledgment")
         ```
     """
-    # Delegate to decoder with routing parameter
+    # Delegate to decoder with routing parameter (routing=True, so returns tuple)
     from uwacomm.codec.decoder import decode as _decode_base
 
-    return _decode_base(message_class, data, routing=True)
+    return cast(tuple[RoutingHeader, T], _decode_base(message_class, data, routing=True))

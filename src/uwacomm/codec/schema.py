@@ -245,9 +245,16 @@ class MessageSchema:
         if (
             annotation is float
             and hasattr(field_info, "json_schema_extra")
-            and field_info.json_schema_extra
+            and isinstance(field_info.json_schema_extra, dict)
         ):
-            precision = field_info.json_schema_extra.get("precision", 0)
+            precision_value = field_info.json_schema_extra.get("precision", 0)
+            # Ensure precision is an int
+            if isinstance(precision_value, int):
+                precision = precision_value
+            elif isinstance(precision_value, (float, str)):
+                precision = int(precision_value)
+            else:
+                precision = 0
 
         # Determine field type characteristics
         enum_type = None

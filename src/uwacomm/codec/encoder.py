@@ -198,17 +198,18 @@ def _encode_field(packer: BitPacker, field_schema: FieldSchema, value: Any) -> N
             raise EncodeError(f"Field {field_schema.name}: float requires min/max bounds")
 
         precision = field_schema.precision or 0
-        min_val = float(field_schema.min_value)
-        max_val = float(field_schema.max_value)
+        min_float = float(field_schema.min_value)
+        max_float = float(field_schema.max_value)
 
         # Scale to integer
-        scaled = round((value - min_val) * (10**precision))
+        scaled = round((value - min_float) * (10**precision))
 
         # Validate range
-        max_scaled = round((max_val - min_val) * (10**precision))
+        max_scaled = round((max_float - min_float) * (10**precision))
         if scaled < 0 or scaled > max_scaled:
             raise EncodeError(
-                f"Field {field_schema.name}: value {value} out of bounds " f"[{min_val}, {max_val}]"
+                f"Field {field_schema.name}: value {value} out of bounds "
+                f"[{min_float}, {max_float}]"
             )
 
         # Encode as bounded integer
