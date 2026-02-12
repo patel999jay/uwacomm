@@ -136,6 +136,11 @@ TEST_FIXES_SUMMARY.md
 PYDANTIC_V2_MIGRATION.md
 PROTOBUF_EXAMPLE_FIX.md
 
+# Temporary files
+*.tmp
+*.bak
+.*.swp
+
 # Generated protobuf files from examples
 underwater_vehicle_status.proto
 *_pb2.py
@@ -148,3 +153,4 @@ examples/compare_dccl_vs_uwacomm.py
 examples/simulate_uw_comms.py
 examples/test_uw_messages.py
 examples/uw_vehicle_messages.py
+DOCS_BUILD.md

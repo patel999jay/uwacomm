@@ -48,6 +48,7 @@ class FieldSchema:
     is_list: bool
     is_bytes: bool
     is_str: bool
+    precision: int | None = None  # For float encoding (DCCL-style)
 
     def bits_required(self) -> int:
         """Calculate the minimum number of bits required to encode this field.
@@ -75,6 +76,20 @@ class FieldSchema:
         if self.python_type is int and self.min_value is not None and self.max_value is not None:
             return self._bits_for_bounded_int(int(self.min_value), int(self.max_value))
 
+        # Bounded float: scale to int and calculate bits (DCCL-style)
+        if self.python_type is float:
+            if self.min_value is None or self.max_value is None:
+                raise SchemaError(
+                    f"Field {self.name}: float requires ge= and le= constraints "
+                    f"(e.g., Field(ge=-100.0, le=100.0))"
+                )
+            precision = self.precision or 0
+            min_val = float(self.min_value)
+            max_val = float(self.max_value)
+            # Scale to integer range
+            max_scaled = round((max_val - min_val) * (10 ** precision))
+            return self._bits_for_bounded_int(0, max_scaled)
+
         # Fixed-length bytes/str: length * 8 bits
         if (self.is_bytes or self.is_str) and self.max_length is not None:
             if self.min_length is not None and self.min_length != self.max_length:
@@ -98,11 +113,6 @@ class FieldSchema:
                 f"for compact encoding."
             )
 
-        if self.python_type is float:
-            raise SchemaError(
-                f"Field {self.name}: float encoding not supported in v0.1.0 "
-                f"(planned for v0.2.0)"
-            )
 
         raise SchemaError(
             f"Field {self.name}: unsupported type {self.python_type}. "
@@ -221,6 +231,7 @@ class MessageSchema:
         max_length = None
 
         # Pydantic v2 stores constraints in metadata
+        precision = None
         for constraint in field_info.metadata:
             if hasattr(constraint, "ge"):
                 min_value = constraint.ge
@@ -230,6 +241,11 @@ class MessageSchema:
                 min_length = constraint.min_length
             if hasattr(constraint, "max_length"):
                 max_length = constraint.max_length
+
+        # Extract precision from json_schema_extra for float fields
+        if annotation is float and hasattr(field_info, 'json_schema_extra'):
+            if field_info.json_schema_extra:
+                precision = field_info.json_schema_extra.get('precision', 0)
 
         # Determine field type characteristics
         enum_type = None
@@ -269,6 +285,7 @@ class MessageSchema:
             is_list=is_list,
             is_bytes=is_bytes,
             is_str=is_str,
+            precision=precision,
         )
 
     def total_bits(self) -> int:
