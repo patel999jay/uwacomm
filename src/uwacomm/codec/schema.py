@@ -87,7 +87,7 @@ class FieldSchema:
             min_val = float(self.min_value)
             max_val = float(self.max_value)
             # Scale to integer range
-            max_scaled = round((max_val - min_val) * (10 ** precision))
+            max_scaled = round((max_val - min_val) * (10**precision))
             return self._bits_for_bounded_int(0, max_scaled)
 
         # Fixed-length bytes/str: length * 8 bits
@@ -112,7 +112,6 @@ class FieldSchema:
                 f"Field {self.name}: integer fields require ge= and le= constraints "
                 f"for compact encoding."
             )
-
 
         raise SchemaError(
             f"Field {self.name}: unsupported type {self.python_type}. "
@@ -243,9 +242,12 @@ class MessageSchema:
                 max_length = constraint.max_length
 
         # Extract precision from json_schema_extra for float fields
-        if annotation is float and hasattr(field_info, 'json_schema_extra'):
-            if field_info.json_schema_extra:
-                precision = field_info.json_schema_extra.get('precision', 0)
+        if (
+            annotation is float
+            and hasattr(field_info, "json_schema_extra")
+            and field_info.json_schema_extra
+        ):
+            precision = field_info.json_schema_extra.get("precision", 0)
 
         # Determine field type characteristics
         enum_type = None

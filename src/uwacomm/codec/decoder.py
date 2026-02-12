@@ -6,7 +6,7 @@ back to a Pydantic message instance.
 
 from __future__ import annotations
 
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
@@ -18,11 +18,8 @@ T = TypeVar("T", bound=BaseModel)
 
 
 def decode(
-    message_class: type[T],
-    data: bytes,
-    include_id: bool = False,
-    routing: bool = False
-) -> Union[T, tuple[Any, T]]:
+    message_class: type[T], data: bytes, include_id: bool = False, routing: bool = False
+) -> T | tuple[Any, T]:
     """Decode compact binary data to a Pydantic message.
 
     This function uses schema introspection to decode fields in the same order
@@ -82,6 +79,7 @@ def decode(
 
             # Import here to avoid circular dependency
             from ..routing import RoutingHeader
+
             routing_header = RoutingHeader(source_id, dest_id, priority, ack_requested)
 
             # Routing always includes message ID
@@ -93,17 +91,13 @@ def decode(
     if include_id:
         try:
             # Read high bit to determine ID size
+            # 1 byte: 0xxxxxxx (7 bits for ID, range 0-127)
+            # 2 bytes: 1xxxxxxx xxxxxxxx (15 bits for ID, range 0-32767)
             high_bit = unpacker.read_bool()
-
-            if not high_bit:
-                # 1 byte: 0xxxxxxx (7 bits for ID, range 0-127)
-                decoded_id = unpacker.read_uint(7)
-            else:
-                # 2 bytes: 1xxxxxxx xxxxxxxx (15 bits for ID, range 0-32767)
-                decoded_id = unpacker.read_uint(15)
+            decoded_id = unpacker.read_uint(7) if not high_bit else unpacker.read_uint(15)
 
             # Validate against expected message class ID
-            expected_id = getattr(message_class, 'uwacomm_id', None)
+            expected_id = getattr(message_class, "uwacomm_id", None)
             if expected_id is not None and decoded_id != expected_id:
                 raise DecodeError(
                     f"Message ID mismatch: decoded {decoded_id}, expected {expected_id} "
@@ -196,21 +190,19 @@ def _decode_field(unpacker: BitUnpacker, field_schema: FieldSchema) -> Any:
     # Bounded float (DCCL-style: descale from integer)
     if field_schema.python_type is float:
         if field_schema.min_value is None or field_schema.max_value is None:
-            raise DecodeError(
-                f"Field {field_schema.name}: float requires min/max bounds"
-            )
+            raise DecodeError(f"Field {field_schema.name}: float requires min/max bounds")
 
         precision = field_schema.precision or 0
         min_val = float(field_schema.min_value)
         max_val = float(field_schema.max_value)
 
         # Decode scaled integer
-        max_scaled = round((max_val - min_val) * (10 ** precision))
+        max_scaled = round((max_val - min_val) * (10**precision))
         num_bits = field_schema._bits_for_bounded_int(0, max_scaled)
         scaled = unpacker.read_uint(num_bits)
 
         # Descale to float
-        value = min_val + (scaled / (10 ** precision))
+        value = min_val + (scaled / (10**precision))
 
         # Validate bounds (defensive check)
         if value < min_val or value > max_val:

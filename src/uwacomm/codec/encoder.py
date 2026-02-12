@@ -74,16 +74,14 @@ def encode(message: BaseModel, include_id: bool = False, routing: Any = None) ->
 
     # Mode 2: Include message ID for self-describing messages
     if include_id:
-        msg_id = getattr(type(message), 'uwacomm_id', None)
+        msg_id = getattr(type(message), "uwacomm_id", None)
         if msg_id is None:
             raise EncodeError(
                 f"{type(message).__name__} has no uwacomm_id attribute. "
                 f"Self-describing messages require uwacomm_id."
             )
         if not isinstance(msg_id, int) or msg_id < 0 or msg_id > 32767:
-            raise EncodeError(
-                f"uwacomm_id must be an integer 0-32767, got {msg_id}"
-            )
+            raise EncodeError(f"uwacomm_id must be an integer 0-32767, got {msg_id}")
 
         # Variable-length ID encoding (varint-style):
         # - IDs 0-127: 1 byte with high bit = 0 (0xxxxxxx)
@@ -97,9 +95,7 @@ def encode(message: BaseModel, include_id: bool = False, routing: Any = None) ->
             packer.write_bool(True)  # High bit = 1
             packer.write_uint(msg_id, 15)  # 15 bits for ID
         else:
-            raise EncodeError(
-                f"uwacomm_id must be 0-32767, got {msg_id}"
-            )
+            raise EncodeError(f"uwacomm_id must be 0-32767, got {msg_id}")
 
     # Encode each field
     for field_schema in schema.fields:
@@ -199,23 +195,20 @@ def _encode_field(packer: BitPacker, field_schema: FieldSchema, value: Any) -> N
             )
 
         if field_schema.min_value is None or field_schema.max_value is None:
-            raise EncodeError(
-                f"Field {field_schema.name}: float requires min/max bounds"
-            )
+            raise EncodeError(f"Field {field_schema.name}: float requires min/max bounds")
 
         precision = field_schema.precision or 0
         min_val = float(field_schema.min_value)
         max_val = float(field_schema.max_value)
 
         # Scale to integer
-        scaled = round((value - min_val) * (10 ** precision))
+        scaled = round((value - min_val) * (10**precision))
 
         # Validate range
-        max_scaled = round((max_val - min_val) * (10 ** precision))
+        max_scaled = round((max_val - min_val) * (10**precision))
         if scaled < 0 or scaled > max_scaled:
             raise EncodeError(
-                f"Field {field_schema.name}: value {value} out of bounds "
-                f"[{min_val}, {max_val}]"
+                f"Field {field_schema.name}: value {value} out of bounds " f"[{min_val}, {max_val}]"
             )
 
         # Encode as bounded integer

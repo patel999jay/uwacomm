@@ -11,15 +11,16 @@ DCCL Reference Data:
 """
 
 import json
-from generic_uw_messages import (
-    VehicleStatus,
-    SensorData,
-    NavigationUpdate,
-    WaypointCommand,
-    CommandAck
-)
-from uwacomm import encode, encode_with_routing
 
+from generic_uw_messages import (
+    CommandAck,
+    NavigationUpdate,
+    SensorData,
+    VehicleStatus,
+    WaypointCommand,
+)
+
+from uwacomm import encode, encode_with_routing
 
 # ============================================================================
 # DCCL Reference Sizes (Measured Data)
@@ -32,11 +33,11 @@ from uwacomm import encode, encode_with_routing
 # Date: 2026-02-11
 #
 DCCL_REFERENCE_SIZES = {
-    "VehicleStatus": 14,      # 14 bytes (112 bits) - measured with dccl --analyze
-    "SensorData": 9,          # 9 bytes (72 bits) - measured with dccl --analyze
-    "NavigationUpdate": 19,   # 19 bytes (152 bits) - measured with dccl --analyze
-    "WaypointCommand": 14,    # 14 bytes (112 bits) - measured with dccl --analyze
-    "CommandAck": 5,          # 5 bytes (40 bits) - measured with dccl --analyze
+    "VehicleStatus": 14,  # 14 bytes (112 bits) - measured with dccl --analyze
+    "SensorData": 9,  # 9 bytes (72 bits) - measured with dccl --analyze
+    "NavigationUpdate": 19,  # 19 bytes (152 bits) - measured with dccl --analyze
+    "WaypointCommand": 14,  # 14 bytes (112 bits) - measured with dccl --analyze
+    "CommandAck": 5,  # 5 bytes (40 bits) - measured with dccl --analyze
 }
 
 # Note: DCCL does NOT support routing headers like uwacomm Mode 3
@@ -58,7 +59,7 @@ def compare_vehicle_status():
         depth_m=125.75,
         heading_deg=45.5,
         speed_ms=1.25,
-        battery_pct=78
+        battery_pct=78,
     )
 
     # Encode with uwacomm (all modes)
@@ -73,9 +74,9 @@ def compare_vehicle_status():
         "depth_m": 125.75,
         "heading_deg": 45.5,
         "speed_ms": 1.25,
-        "battery_pct": 78
+        "battery_pct": 78,
     }
-    json_bytes = json.dumps(json_dict).encode('utf-8')
+    json_bytes = json.dumps(json_dict).encode("utf-8")
 
     # DCCL reference size (static)
     dccl_size = DCCL_REFERENCE_SIZES["VehicleStatus"]
@@ -83,10 +84,18 @@ def compare_vehicle_status():
     # Print comparison
     print(f"{'Format':<25} {'Size (bytes)':<15} {'vs JSON':<15} {'vs DCCL':<15}")
     print("-" * 80)
-    print(f"{'uwacomm Mode 1':<25} {len(mode1):<15} {_savings(len(mode1), len(json_bytes)):<15} {_savings(len(mode1), dccl_size):<15}")
-    print(f"{'uwacomm Mode 2':<25} {len(mode2):<15} {_savings(len(mode2), len(json_bytes)):<15} {_savings(len(mode2), dccl_size):<15}")
-    print(f"{'uwacomm Mode 3':<25} {len(mode3):<15} {_savings(len(mode3), len(json_bytes)):<15} {'N/A (routing)':<15}")
-    print(f"{'DCCL 4.x (reference)':<25} {dccl_size:<15} {_savings(dccl_size, len(json_bytes)):<15} {'—':<15}")
+    print(
+        f"{'uwacomm Mode 1':<25} {len(mode1):<15} {_savings(len(mode1), len(json_bytes)):<15} {_savings(len(mode1), dccl_size):<15}"
+    )
+    print(
+        f"{'uwacomm Mode 2':<25} {len(mode2):<15} {_savings(len(mode2), len(json_bytes)):<15} {_savings(len(mode2), dccl_size):<15}"
+    )
+    print(
+        f"{'uwacomm Mode 3':<25} {len(mode3):<15} {_savings(len(mode3), len(json_bytes)):<15} {'N/A (routing)':<15}"
+    )
+    print(
+        f"{'DCCL 4.x (reference)':<25} {dccl_size:<15} {_savings(dccl_size, len(json_bytes)):<15} {'—':<15}"
+    )
     print(f"{'JSON':<25} {len(json_bytes):<15} {'—':<15} {'—':<15}")
     print()
 
@@ -115,7 +124,7 @@ def compare_sensor_data():
         salinity_psu=35.2,
         pressure_bar=125.5,
         dissolved_oxygen=6.8,
-        turbidity_ntu=15.0
+        turbidity_ntu=15.0,
     )
 
     mode1 = encode(sensors)
@@ -126,16 +135,22 @@ def compare_sensor_data():
         "salinity_psu": 35.2,
         "pressure_bar": 125.5,
         "dissolved_oxygen": 6.8,
-        "turbidity_ntu": 15.0
+        "turbidity_ntu": 15.0,
     }
-    json_bytes = json.dumps(json_dict).encode('utf-8')
+    json_bytes = json.dumps(json_dict).encode("utf-8")
     dccl_size = DCCL_REFERENCE_SIZES["SensorData"]
 
     print(f"{'Format':<25} {'Size (bytes)':<15} {'vs JSON':<15} {'vs DCCL':<15}")
     print("-" * 80)
-    print(f"{'uwacomm Mode 1':<25} {len(mode1):<15} {_savings(len(mode1), len(json_bytes)):<15} {_savings(len(mode1), dccl_size):<15}")
-    print(f"{'uwacomm Mode 2':<25} {len(mode2):<15} {_savings(len(mode2), len(json_bytes)):<15} {_savings(len(mode2), dccl_size):<15}")
-    print(f"{'DCCL 4.x (reference)':<25} {dccl_size:<15} {_savings(dccl_size, len(json_bytes)):<15} {'—':<15}")
+    print(
+        f"{'uwacomm Mode 1':<25} {len(mode1):<15} {_savings(len(mode1), len(json_bytes)):<15} {_savings(len(mode1), dccl_size):<15}"
+    )
+    print(
+        f"{'uwacomm Mode 2':<25} {len(mode2):<15} {_savings(len(mode2), len(json_bytes)):<15} {_savings(len(mode2), dccl_size):<15}"
+    )
+    print(
+        f"{'DCCL 4.x (reference)':<25} {dccl_size:<15} {_savings(dccl_size, len(json_bytes)):<15} {'—':<15}"
+    )
     print(f"{'JSON':<25} {len(json_bytes):<15} {'—':<15} {'—':<15}")
     print()
     print()
@@ -157,7 +172,7 @@ def compare_navigation_update():
         vel_east=0.5,
         vel_down=-0.1,
         roll_deg=2.5,
-        pitch_deg=-1.3
+        pitch_deg=-1.3,
     )
 
     mode1 = encode(nav)
@@ -171,16 +186,22 @@ def compare_navigation_update():
         "vel_east": 0.5,
         "vel_down": -0.1,
         "roll_deg": 2.5,
-        "pitch_deg": -1.3
+        "pitch_deg": -1.3,
     }
-    json_bytes = json.dumps(json_dict).encode('utf-8')
+    json_bytes = json.dumps(json_dict).encode("utf-8")
     dccl_size = DCCL_REFERENCE_SIZES["NavigationUpdate"]
 
     print(f"{'Format':<25} {'Size (bytes)':<15} {'vs JSON':<15} {'vs DCCL':<15}")
     print("-" * 80)
-    print(f"{'uwacomm Mode 1':<25} {len(mode1):<15} {_savings(len(mode1), len(json_bytes)):<15} {_savings(len(mode1), dccl_size):<15}")
-    print(f"{'uwacomm Mode 2':<25} {len(mode2):<15} {_savings(len(mode2), len(json_bytes)):<15} {_savings(len(mode2), dccl_size):<15}")
-    print(f"{'DCCL 4.x (reference)':<25} {dccl_size:<15} {_savings(dccl_size, len(json_bytes)):<15} {'—':<15}")
+    print(
+        f"{'uwacomm Mode 1':<25} {len(mode1):<15} {_savings(len(mode1), len(json_bytes)):<15} {_savings(len(mode1), dccl_size):<15}"
+    )
+    print(
+        f"{'uwacomm Mode 2':<25} {len(mode2):<15} {_savings(len(mode2), len(json_bytes)):<15} {_savings(len(mode2), dccl_size):<15}"
+    )
+    print(
+        f"{'DCCL 4.x (reference)':<25} {dccl_size:<15} {_savings(dccl_size, len(json_bytes)):<15} {'—':<15}"
+    )
     print(f"{'JSON':<25} {len(json_bytes):<15} {'—':<15} {'—':<15}")
     print()
     print()
@@ -194,26 +215,52 @@ def overall_summary():
     print()
 
     messages = [
-        ("VehicleStatus", VehicleStatus(
-            position_lat=42.358, position_lon=-71.064, depth_m=125.5,
-            heading_deg=45.0, speed_ms=1.25, battery_pct=78
-        )),
-        ("SensorData", SensorData(
-            water_temp_c=12.3, salinity_psu=35.2, pressure_bar=125.5,
-            dissolved_oxygen=6.8, turbidity_ntu=15.0
-        )),
-        ("NavigationUpdate", NavigationUpdate(
-            est_lat=42.36, est_lon=-71.065, est_depth=150.0,
-            vel_north=1.2, vel_east=0.5, vel_down=-0.1,
-            roll_deg=2.5, pitch_deg=-1.3
-        )),
-        ("WaypointCommand", WaypointCommand(
-            target_lat=42.365, target_lon=-71.070, target_depth=100.0,
-            radius_m=10.0, speed_ms=1.0, waypoint_id=5
-        )),
-        ("CommandAck", CommandAck(
-            acked_msg_id=100, ack_status=0, error_code=0
-        )),
+        (
+            "VehicleStatus",
+            VehicleStatus(
+                position_lat=42.358,
+                position_lon=-71.064,
+                depth_m=125.5,
+                heading_deg=45.0,
+                speed_ms=1.25,
+                battery_pct=78,
+            ),
+        ),
+        (
+            "SensorData",
+            SensorData(
+                water_temp_c=12.3,
+                salinity_psu=35.2,
+                pressure_bar=125.5,
+                dissolved_oxygen=6.8,
+                turbidity_ntu=15.0,
+            ),
+        ),
+        (
+            "NavigationUpdate",
+            NavigationUpdate(
+                est_lat=42.36,
+                est_lon=-71.065,
+                est_depth=150.0,
+                vel_north=1.2,
+                vel_east=0.5,
+                vel_down=-0.1,
+                roll_deg=2.5,
+                pitch_deg=-1.3,
+            ),
+        ),
+        (
+            "WaypointCommand",
+            WaypointCommand(
+                target_lat=42.365,
+                target_lon=-71.070,
+                target_depth=100.0,
+                radius_m=10.0,
+                speed_ms=1.0,
+                waypoint_id=5,
+            ),
+        ),
+        ("CommandAck", CommandAck(acked_msg_id=100, ack_status=0, error_code=0)),
     ]
 
     total_mode1 = 0
@@ -252,7 +299,7 @@ def overall_summary():
     elif savings < 0:
         print(f"✓ uwacomm Mode 2 ties with DCCL (within {abs(savings):.1f}%)")
     else:
-        print(f"✓ uwacomm Mode 2 exactly matches DCCL size")
+        print("✓ uwacomm Mode 2 exactly matches DCCL size")
 
     mode1_savings = ((total_dccl - total_mode1) / total_dccl) * 100
     print(f"✓ uwacomm Mode 1 is {mode1_savings:.1f}% smaller than DCCL")

@@ -138,11 +138,5 @@ def BoundedFloat(*, min: float, max: float, precision: int = 2, **kwargs: Any) -
         raise ValueError("precision must be 0-6")
 
     return cast(
-        FieldInfo,
-        Field(
-            ge=min,
-            le=max,
-            json_schema_extra={"precision": precision},
-            **kwargs
-        )
+        FieldInfo, Field(ge=min, le=max, json_schema_extra={"precision": precision}, **kwargs)
     )

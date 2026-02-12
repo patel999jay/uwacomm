@@ -7,12 +7,14 @@ This module provides:
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TypeVar
 
 from pydantic import BaseModel
 
-from uwacomm.codec.decoder import decode as _decode_base
 from uwacomm.codec.bitpack import BitUnpacker
+from uwacomm.codec.decoder import decode as _decode_base
+from uwacomm.codec.encoder import encode as _encode_base
 from uwacomm.exceptions import DecodeError
 
 T = TypeVar("T", bound=BaseModel)
@@ -47,7 +49,7 @@ def register_message(message_class: type[BaseModel]) -> None:
         # Now decode_by_id() can auto-detect message type
         ```
     """
-    msg_id = getattr(message_class, 'uwacomm_id', None)
+    msg_id = getattr(message_class, "uwacomm_id", None)
     if msg_id is None:
         raise ValueError(
             f"{message_class.__name__} has no uwacomm_id attribute. "
@@ -55,9 +57,7 @@ def register_message(message_class: type[BaseModel]) -> None:
         )
 
     if not isinstance(msg_id, int) or msg_id < 0 or msg_id > 32767:
-        raise ValueError(
-            f"uwacomm_id must be an integer 0-32767, got {msg_id}"
-        )
+        raise ValueError(f"uwacomm_id must be an integer 0-32767, got {msg_id}")
 
     # Check for conflicts
     if msg_id in MESSAGE_REGISTRY:
@@ -111,14 +111,10 @@ def decode_by_id(data: bytes) -> BaseModel:
         unpacker = BitUnpacker(data)
 
         # Read high bit to determine ID size
+        # 1 byte: 0xxxxxxx (7 bits for ID, range 0-127)
+        # 2 bytes: 1xxxxxxx xxxxxxxx (15 bits for ID, range 0-32767)
         high_bit = unpacker.read_bool()
-
-        if not high_bit:
-            # 1 byte: 0xxxxxxx (7 bits for ID, range 0-127)
-            msg_id = unpacker.read_uint(7)
-        else:
-            # 2 bytes: 1xxxxxxx xxxxxxxx (15 bits for ID, range 0-32767)
-            msg_id = unpacker.read_uint(15)
+        msg_id = unpacker.read_uint(7) if not high_bit else unpacker.read_uint(15)
 
     except IndexError as e:
         raise DecodeError(f"Truncated data while reading message ID: {e}") from e
@@ -140,10 +136,6 @@ def decode_by_id(data: bytes) -> BaseModel:
 # ============================================================================
 # Mode 3: Multi-Vehicle Routing
 # ============================================================================
-
-from dataclasses import dataclass
-
-from uwacomm.codec.encoder import encode as _encode_base
 
 
 @dataclass
@@ -171,9 +163,10 @@ class RoutingHeader:
         header = RoutingHeader(source_id=3, dest_id=0, priority=2, ack_requested=True)
         ```
     """
-    source_id: int      # 0-255
-    dest_id: int        # 0-255 (255 = broadcast)
-    priority: int = 0   # 0-3 (0=low, 3=high)
+
+    source_id: int  # 0-255
+    dest_id: int  # 0-255 (255 = broadcast)
+    priority: int = 0  # 0-3 (0=low, 3=high)
     ack_requested: bool = False
 
     def __post_init__(self):
@@ -187,11 +180,7 @@ class RoutingHeader:
 
 
 def encode_with_routing(
-    message: BaseModel,
-    source_id: int,
-    dest_id: int,
-    priority: int = 0,
-    ack_requested: bool = False
+    message: BaseModel, source_id: int, dest_id: int, priority: int = 0, ack_requested: bool = False
 ) -> bytes:
     """Encode message with routing header (Mode 3).
 
@@ -227,14 +216,11 @@ def encode_with_routing(
     routing = RoutingHeader(source_id, dest_id, priority, ack_requested)
 
     # Delegate to encoder with routing parameter
-    from uwacomm.codec.encoder import encode as _encode_base
+
     return _encode_base(message, routing=routing)
 
 
-def decode_with_routing(
-    message_class: type[T],
-    data: bytes
-) -> tuple[RoutingHeader, T]:
+def decode_with_routing(message_class: type[T], data: bytes) -> tuple[RoutingHeader, T]:
     """Decode message with routing header (Mode 3).
 
     Args:
@@ -261,4 +247,5 @@ def decode_with_routing(
     """
     # Delegate to decoder with routing parameter
     from uwacomm.codec.decoder import decode as _decode_base
+
     return _decode_base(message_class, data, routing=True)

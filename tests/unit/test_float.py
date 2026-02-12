@@ -2,12 +2,13 @@
 
 import pytest
 
-from uwacomm import BaseMessage, encode, decode
+from uwacomm import BaseMessage, decode, encode
 from uwacomm.models.fields import BoundedFloat
 
 
 class FloatMessage(BaseMessage):
     """Test message with various float precisions."""
+
     depth: float = BoundedFloat(min=-5.0, max=100.0, precision=2)
     temperature: float = BoundedFloat(min=-20.0, max=40.0, precision=1)
     latitude: float = BoundedFloat(min=-90.0, max=90.0, precision=6)
@@ -19,12 +20,7 @@ class TestFloatEncoding:
 
     def test_basic_float_roundtrip(self):
         """Basic float encode/decode roundtrip."""
-        msg = FloatMessage(
-            depth=25.75,
-            temperature=18.3,
-            latitude=42.358894,
-            longitude=-71.063611
-        )
+        msg = FloatMessage(depth=25.75, temperature=18.3, latitude=42.358894, longitude=-71.063611)
 
         encoded = encode(msg)
         decoded = decode(FloatMessage, encoded)
@@ -41,7 +37,7 @@ class TestFloatEncoding:
             depth=25.753,  # Will be rounded to 25.75
             temperature=18.34,  # Will be rounded to 18.3
             latitude=42.358894123,  # Will be rounded to 42.358894
-            longitude=-71.063611456
+            longitude=-71.063611456,
         )
 
         encoded = encode(msg)
@@ -53,12 +49,7 @@ class TestFloatEncoding:
 
     def test_float_bandwidth_efficiency(self):
         """Float encoding is bandwidth-efficient vs IEEE 754."""
-        msg = FloatMessage(
-            depth=50.0,
-            temperature=20.0,
-            latitude=45.0,
-            longitude=-75.0
-        )
+        msg = FloatMessage(depth=50.0, temperature=20.0, latitude=45.0, longitude=-75.0)
 
         encoded = encode(msg)
 
@@ -78,12 +69,7 @@ class TestFloatEncoding:
     def test_float_boundary_values(self):
         """Float encoding handles boundary values correctly."""
         # Test min/max boundaries
-        msg_min = FloatMessage(
-            depth=-5.0,
-            temperature=-20.0,
-            latitude=-90.0,
-            longitude=-180.0
-        )
+        msg_min = FloatMessage(depth=-5.0, temperature=-20.0, latitude=-90.0, longitude=-180.0)
 
         encoded_min = encode(msg_min)
         decoded_min = decode(FloatMessage, encoded_min)
@@ -91,12 +77,7 @@ class TestFloatEncoding:
         assert decoded_min.depth == pytest.approx(-5.0, abs=0.01)
         assert decoded_min.temperature == pytest.approx(-20.0, abs=0.1)
 
-        msg_max = FloatMessage(
-            depth=100.0,
-            temperature=40.0,
-            latitude=90.0,
-            longitude=180.0
-        )
+        msg_max = FloatMessage(depth=100.0, temperature=40.0, latitude=90.0, longitude=180.0)
 
         encoded_max = encode(msg_max)
         decoded_max = decode(FloatMessage, encoded_max)
@@ -110,15 +91,13 @@ class TestFloatEncoding:
 
         # Pydantic validates bounds at construction time (before encoding)
         with pytest.raises(ValidationError):
-            msg = FloatMessage(
-                depth=150.0,  # Max is 100.0
-                temperature=20.0,
-                latitude=45.0,
-                longitude=-75.0
+            FloatMessage(
+                depth=150.0, temperature=20.0, latitude=45.0, longitude=-75.0  # Max is 100.0
             )
 
     def test_zero_precision_float(self):
         """Float with precision=0 works like integer."""
+
         class IntegerLikeFloat(BaseMessage):
             value: float = BoundedFloat(min=0.0, max=100.0, precision=0)
 
