@@ -34,14 +34,27 @@ def encode(message: BaseModel, include_id: bool = False, routing: Any = None) ->
         SchemaError: If message schema is invalid
         EncodeError: If a field value is invalid or out of bounds
 
-    Example:
-        >>> class Status(BaseMessage):
-        ...     vehicle_id: int = Field(ge=0, le=255)
-        ...     active: bool
-        >>> msg = Status(vehicle_id=42, active=True)
-        >>> data = encode(msg)  # Mode 1: Point-to-point
-        >>> data = encode(msg, include_id=True)  # Mode 2: Self-describing
-        >>> data = encode(msg, routing=RoutingHeader(3, 0, 2))  # Mode 3: Routing
+    Examples:
+        ```python
+        from uwacomm import BaseMessage, BoundedInt, encode
+        from uwacomm import RoutingHeader
+
+        class Status(BaseMessage):
+            vehicle_id: int = BoundedInt(ge=0, le=255)
+            active: bool
+            uwacomm_id: int = 10
+
+        msg = Status(vehicle_id=42, active=True)
+
+        # Mode 1: Point-to-point (maximum compression)
+        data = encode(msg)
+
+        # Mode 2: Self-describing (includes message ID)
+        data = encode(msg, include_id=True)
+
+        # Mode 3: Multi-vehicle routing
+        data = encode(msg, routing=RoutingHeader(3, 0, 2))
+        ```
     """
     # Introspect the schema
     schema = MessageSchema.from_model(type(message))

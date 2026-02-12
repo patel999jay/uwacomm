@@ -1,8 +1,31 @@
-# Utilities API Reference
+# Field Helpers
 
-!!! info "Documentation In Progress"
-    This page is under construction.
+Field helper functions for defining message fields with compact encoding.
 
----
+## BoundedInt
 
-_This page will be expanded soon with utilities API documentation (CRC, size calculation, etc.)._
+::: uwacomm.BoundedInt
+    options:
+      show_root_heading: true
+      show_source: true
+
+## BoundedFloat
+
+::: uwacomm.BoundedFloat
+    options:
+      show_root_heading: true
+      show_source: true
+
+## FixedBytes
+
+::: uwacomm.FixedBytes
+    options:
+      show_root_heading: true
+      show_source: true
+
+## FixedStr
+
+::: uwacomm.FixedStr
+    options:
+      show_root_heading: true
+      show_source: true

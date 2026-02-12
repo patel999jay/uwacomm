@@ -1,15 +1,41 @@
-# Codec API Reference
+# Codec API
 
-!!! info "Documentation In Progress"
-    This page is under construction.
+Low-level encoder and decoder modules.
 
-## Available Documentation
+## Encoder
 
-For codec usage, see:
+::: uwacomm.codec.encoder
+    options:
+      show_root_heading: true
+      show_source: true
+      members:
+        - encode
 
-- **[Multi-Mode Encoding](../user_guide/multi_mode_encoding.md)** - Encoding/decoding APIs
-- **[Home](../index.md)** - Basic codec usage
+## Decoder
 
----
+::: uwacomm.codec.decoder
+    options:
+      show_root_heading: true
+      show_source: true
+      members:
+        - decode
 
-_This page will be expanded soon with detailed codec API documentation._
+## Schema
+
+::: uwacomm.codec.schema
+    options:
+      show_root_heading: true
+      show_source: true
+      members:
+        - extract_schema
+        - FieldSchema
+
+## Bit Packing
+
+::: uwacomm.codec.bitpack
+    options:
+      show_root_heading: true
+      show_source: true
+      members:
+        - BitPacker
+        - BitUnpacker

@@ -38,11 +38,14 @@ def register_message(message_class: type[BaseModel]) -> None:
     Raises:
         ValueError: If message_class has no uwacomm_id or ID already registered
 
-    Example:
-        >>> from examples.uw_vehicle_messages import UwHeartbeat, BatteryReport
-        >>> register_message(UwHeartbeat)
-        >>> register_message(BatteryReport)
-        >>> # Now decode_by_id() can auto-detect message type
+    Examples:
+        ```python
+        from examples.uw_vehicle_messages import UwHeartbeat, BatteryReport
+
+        register_message(UwHeartbeat)
+        register_message(BatteryReport)
+        # Now decode_by_id() can auto-detect message type
+        ```
     """
     msg_id = getattr(message_class, 'uwacomm_id', None)
     if msg_id is None:
@@ -85,18 +88,20 @@ def decode_by_id(data: bytes) -> BaseModel:
     Raises:
         DecodeError: If message ID not registered or data is invalid
 
-    Example:
-        >>> # Register all message types first
-        >>> register_message(UwHeartbeat)
-        >>> register_message(BatteryReport)
-        >>>
-        >>> # Receive unknown message over acoustic modem
-        >>> received_bytes = b'\\x69...'  # ID 105 (UwHeartbeat)
-        >>>
-        >>> # Auto-decode without knowing the type
-        >>> msg = decode_by_id(received_bytes)
-        >>> if isinstance(msg, UwHeartbeat):
-        ...     print(f"Heartbeat at depth {msg.depth}")
+    Examples:
+        ```python
+        # Register all message types first
+        register_message(UwHeartbeat)
+        register_message(BatteryReport)
+
+        # Receive unknown message over acoustic modem
+        received_bytes = b'\\x69...'  # ID 105 (UwHeartbeat)
+
+        # Auto-decode without knowing the type
+        msg = decode_by_id(received_bytes)
+        if isinstance(msg, UwHeartbeat):
+            print(f"Heartbeat at depth {msg.depth}")
+        ```
     """
     if not data:
         raise DecodeError("Cannot decode empty data")
@@ -160,9 +165,11 @@ class RoutingHeader:
         - ack_requested: 1 bit
         Total: 19 bits (~3 bytes when byte-aligned)
 
-    Example:
-        >>> header = RoutingHeader(source_id=3, dest_id=0, priority=2, ack_requested=True)
-        >>> # Vehicle 3 sends high-priority message to topside (ID 0) with ACK request
+    Examples:
+        ```python
+        # Vehicle 3 sends high-priority message to topside (ID 0) with ACK request
+        header = RoutingHeader(source_id=3, dest_id=0, priority=2, ack_requested=True)
+        ```
     """
     source_id: int      # 0-255
     dest_id: int        # 0-255 (255 = broadcast)
@@ -205,12 +212,16 @@ def encode_with_routing(
         ValueError: If routing parameters are out of range
         EncodeError: If message encoding fails
 
-    Example:
-        >>> from examples.uw_vehicle_messages import UwHeartbeat
-        >>> heartbeat = UwHeartbeat(lat=42358894, lon=-71063611, ...)
-        >>> # Vehicle 3 sends to topside (ID 0)
-        >>> encoded = encode_with_routing(heartbeat, source_id=3, dest_id=0, priority=2)
-        >>> # Size: 3 bytes routing + 1 byte ID + 21 bytes payload = 25 bytes
+    Examples:
+        ```python
+        from examples.uw_vehicle_messages import UwHeartbeat
+
+        heartbeat = UwHeartbeat(lat=42358894, lon=-71063611, ...)
+
+        # Vehicle 3 sends to topside (ID 0)
+        encoded = encode_with_routing(heartbeat, source_id=3, dest_id=0, priority=2)
+        # Size: 3 bytes routing + 1 byte ID + 21 bytes payload = 25 bytes
+        ```
     """
     # Create and validate routing header
     routing = RoutingHeader(source_id, dest_id, priority, ack_requested)
@@ -236,13 +247,17 @@ def decode_with_routing(
     Raises:
         DecodeError: If decoding fails or data is invalid
 
-    Example:
-        >>> from examples.uw_vehicle_messages import UwHeartbeat
-        >>> # Receive message from acoustic modem
-        >>> routing, heartbeat = decode_with_routing(UwHeartbeat, received_bytes)
-        >>> print(f"From vehicle {routing.source_id}, priority {routing.priority}")
-        >>> if routing.ack_requested:
-        ...     print("ACK requested - send acknowledgment")
+    Examples:
+        ```python
+        from examples.uw_vehicle_messages import UwHeartbeat
+
+        # Receive message from acoustic modem
+        routing, heartbeat = decode_with_routing(UwHeartbeat, received_bytes)
+        print(f"From vehicle {routing.source_id}, priority {routing.priority}")
+
+        if routing.ack_requested:
+            print("ACK requested - send acknowledgment")
+        ```
     """
     # Delegate to decoder with routing parameter
     from uwacomm.codec.decoder import decode as _decode_base

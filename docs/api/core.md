@@ -1,16 +1,66 @@
-# Core API Reference
+# Core API
 
-!!! info "Documentation In Progress"
-    This page is under construction.
+The core uwacomm API provides the main encoding and decoding functions.
 
-## Available Documentation
+## encode
 
-For API usage, see:
+::: uwacomm.encode
+    options:
+      show_root_heading: true
+      show_source: true
 
-- **[Home](../index.md)** - Quick start with API examples
-- **[Multi-Mode Encoding](../user_guide/multi_mode_encoding.md)** - encode(), decode(), encode_with_routing()
-- **[Float Encoding](../user_guide/float_encoding.md)** - BoundedFloat API
+## decode
 
----
+::: uwacomm.decode
+    options:
+      show_root_heading: true
+      show_source: true
 
-_This page will be expanded soon with auto-generated API documentation using mkdocstrings._
+## BaseMessage
+
+::: uwacomm.BaseMessage
+    options:
+      show_root_heading: true
+      show_source: true
+      members:
+        - uwacomm_id
+        - uwacomm_max_bytes
+
+## Multi-Vehicle Routing
+
+### encode_with_routing
+
+::: uwacomm.encode_with_routing
+    options:
+      show_root_heading: true
+      show_source: true
+
+### decode_with_routing
+
+::: uwacomm.decode_with_routing
+    options:
+      show_root_heading: true
+      show_source: true
+
+### RoutingHeader
+
+::: uwacomm.RoutingHeader
+    options:
+      show_root_heading: true
+      show_source: true
+
+## Message Registry
+
+### register_message
+
+::: uwacomm.register_message
+    options:
+      show_root_heading: true
+      show_source: true
+
+### decode_by_id
+
+::: uwacomm.decode_by_id
+    options:
+      show_root_heading: true
+      show_source: true

@@ -41,11 +41,28 @@ def decode(
         SchemaError: If message schema is invalid
         DecodeError: If data is truncated, corrupted, or doesn't match schema
 
-    Example:
-        >>> data = encode(msg)
-        >>> decoded = decode(Status, data)  # Mode 1: Point-to-point
-        >>> decoded = decode(Status, data, include_id=True)  # Mode 2: Self-describing
-        >>> routing, decoded = decode(Status, data, routing=True)  # Mode 3: Routing
+    Examples:
+        ```python
+        from uwacomm import BaseMessage, BoundedInt, encode, decode
+
+        class Status(BaseMessage):
+            vehicle_id: int = BoundedInt(ge=0, le=255)
+            active: bool
+            uwacomm_id: int = 10
+
+        msg = Status(vehicle_id=42, active=True)
+        data = encode(msg)
+
+        # Mode 1: Point-to-point
+        decoded = decode(Status, data)
+
+        # Mode 2: Self-describing (with ID validation)
+        decoded = decode(Status, data, include_id=True)
+
+        # Mode 3: Multi-vehicle routing
+        routing, decoded = decode(Status, data, routing=True)
+        print(f"From vehicle {routing.source_id}")
+        ```
     """
     # Introspect the schema
     schema = MessageSchema.from_model(message_class)
