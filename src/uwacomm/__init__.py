@@ -52,6 +52,10 @@ from .routing import (
     encode_with_routing,
     register_message,
 )
+
+# Modem drivers (lazy import to avoid circular dependencies)
+from . import modem
+
 from .utils import (
     crc16,
     crc16_bytes,
@@ -83,6 +87,8 @@ __all__ = [
     "RoutingHeader",
     "encode_with_routing",
     "decode_with_routing",
+    # Modem Drivers (Hardware-in-the-Loop simulation)
+    "modem",
     # Exceptions
     "UwacommError",
     "PyDCCLError",  # Backward compatibility alias
