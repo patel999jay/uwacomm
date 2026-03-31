@@ -55,7 +55,8 @@ While DCCL is excellent, Python developers often want:
 - **🛡️ Error detection**: Built-in CRC-16/CRC-32 and framing utilities
 - **🔄 Protobuf interop**: Generate `.proto` schemas from Pydantic models
 - **📊 Size analysis**: Calculate encoded sizes before transmission
-- **🧪 Well-tested**: 123+ passing tests, 86% code coverage
+- **🧪 Well-tested**: 182+ passing tests, 88% code coverage
+- **⚡ Benchmarked**: pytest-benchmark suite for codec, float, routing, and fragmentation throughput
 
 ---
 
@@ -553,8 +554,8 @@ See the [`examples/`](examples/) directory for complete, runnable examples:
 - ✅ Fixed-length bytes
 - ✅ Fixed-length strings (UTF-8)
 - ✅ **NEW:** Floats with precision (DCCL-style bounded floats) - v0.2.0
-- ⏸️ Nested messages (planned for v0.3.0)
-- ⏸️ Variable-length arrays/strings (planned for v0.3.0)
+- ⏸️ Nested messages (planned for v0.4.0)
+- ⏸️ Variable-length arrays/strings (planned for v0.4.0)
 
 ### Encoding Modes
 
@@ -578,6 +579,7 @@ See the [`examples/`](examples/) directory for complete, runnable examples:
 - ✅ Encoded size calculation
 - ✅ Protobuf schema generation
 - ✅ **NEW:** Message fragmentation/reassembly - v0.3.0
+- ✅ **NEW:** Performance benchmarking suite (pytest-benchmark) - v0.3.0
 
 ### Hardware-in-the-Loop (HITL) Simulation
 
@@ -635,6 +637,18 @@ pip install -e ".[dev]"
 ```bash
 pytest
 ```
+
+### Run Benchmarks
+
+```bash
+# Run all benchmarks (sorted by mean time)
+pytest tests/benchmarks/ --benchmark-only --benchmark-sort=mean
+
+# Save results to JSON for tracking over time
+pytest tests/benchmarks/ --benchmark-only --benchmark-json=benchmark_results.json
+```
+
+Benchmarks cover encode/decode throughput, float precision overhead, routing header cost, and fragmentation/reassembly speed. They are excluded from the default `pytest` run.
 
 ### Linting
 

@@ -17,10 +17,10 @@ Design Patterns:
 from __future__ import annotations
 
 import random
+from collections.abc import Callable
 from queue import Queue
 from threading import Thread
 from time import sleep
-from typing import Callable
 
 from uwacomm.modem.config import MockModemConfig
 from uwacomm.modem.driver import ModemDriver
@@ -150,9 +150,7 @@ class MockModemDriver(ModemDriver):
             ```
         """
         if not self._running:
-            raise RuntimeError(
-                "MockModem not connected. Call connect() before send_frame()."
-            )
+            raise RuntimeError("MockModem not connected. Call connect() before send_frame().")
 
         # Validate destination ID
         if not 0 <= dest_id <= 255:
@@ -161,16 +159,12 @@ class MockModemDriver(ModemDriver):
         # Validate frame size
         if len(data) > self.config.max_frame_size:
             raise ValueError(
-                f"Data size {len(data)} exceeds max_frame_size "
-                f"{self.config.max_frame_size}"
+                f"Data size {len(data)} exceeds max_frame_size " f"{self.config.max_frame_size}"
             )
 
         # Simulate packet loss
         if random.random() < self.config.packet_loss_probability:
-            print(
-                f"[MockModem] Frame lost in channel "
-                f"({len(data)} bytes to ID {dest_id})"
-            )
+            print(f"[MockModem] Frame lost in channel " f"({len(data)} bytes to ID {dest_id})")
             return
 
         # Simulate bit errors (if BER > 0)

@@ -25,7 +25,7 @@ Design:
 from __future__ import annotations
 
 import struct
-from typing import Iterator
+from collections.abc import Iterator
 
 from uwacomm.exceptions import FragmentationError
 
@@ -115,9 +115,7 @@ def fragment_message(
         _fragment_id_counter = (_fragment_id_counter + 1) % 65536  # Wrap at 16 bits
     else:
         if not 0 <= fragment_id <= 65535:
-            raise FragmentationError(
-                f"fragment_id must be 0-65535, got {fragment_id}"
-            )
+            raise FragmentationError(f"fragment_id must be 0-65535, got {fragment_id}")
         frag_id = fragment_id
 
     # Create fragments
@@ -241,9 +239,7 @@ def reassemble_fragments(fragments: list[bytes]) -> bytes:
 
         # Check for duplicates
         if seq_num in parsed_fragments:
-            raise FragmentationError(
-                f"Duplicate fragment: sequence number {seq_num} appears twice"
-            )
+            raise FragmentationError(f"Duplicate fragment: sequence number {seq_num} appears twice")
 
         # Store fragment
         parsed_fragments[seq_num] = (frag_id, total, data)
@@ -317,9 +313,7 @@ def iter_fragments(
     num_fragments = (len(data) + chunk_size - 1) // chunk_size
 
     if num_fragments > 255:
-        raise FragmentationError(
-            f"Message requires {num_fragments} fragments, but maximum is 255"
-        )
+        raise FragmentationError(f"Message requires {num_fragments} fragments, but maximum is 255")
 
     # Generate or use provided fragment ID
     global _fragment_id_counter
@@ -328,9 +322,7 @@ def iter_fragments(
         _fragment_id_counter = (_fragment_id_counter + 1) % 65536
     else:
         if not 0 <= fragment_id <= 65535:
-            raise FragmentationError(
-                f"fragment_id must be 0-65535, got {fragment_id}"
-            )
+            raise FragmentationError(f"fragment_id must be 0-65535, got {fragment_id}")
         frag_id = fragment_id
 
     # Yield fragments one at a time
@@ -339,8 +331,6 @@ def iter_fragments(
         end = min(start + chunk_size, len(data))
         chunk = data[start:end]
 
-        header = struct.pack(
-            _FRAGMENT_HEADER_FORMAT, frag_id, seq_num, num_fragments
-        )
+        header = struct.pack(_FRAGMENT_HEADER_FORMAT, frag_id, seq_num, num_fragments)
 
         yield header + chunk

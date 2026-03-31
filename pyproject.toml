@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "uwacomm"
-version = "0.1.1"
+version = "0.3.0"
 description = "Underwater communications codec with DCCL-inspired compact binary encoding"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -173,6 +173,11 @@ addopts = [
     "--cov-report=html",
     "--cov-report=xml",
 ]
+norecursedirs = [
+    "benchmarks",
+    ".git", ".venv", ".hypothesis", ".mypy_cache", ".tox", ".nox",
+    "__pycache__", "*.egg-info", "dist", "build", "site", "htmlcov",
+]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
@@ -193,6 +198,15 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "pass",
 ]
+
+[tool.pytest-benchmark]
+min_rounds = 100
+min_time = 0.1
+max_time = 5.0
+timer = "time.perf_counter"
+disable_gc = true
+warmup = true
+sort = "mean"
 
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]

@@ -31,6 +31,8 @@ For more information, see: https://github.com/patel999jay/uwacomm
 
 from __future__ import annotations
 
+# Modem drivers (lazy import to avoid circular dependencies)
+from . import modem
 from .codec import decode, encode
 from .exceptions import (
     DecodeError,
@@ -54,10 +56,6 @@ from .routing import (
     encode_with_routing,
     register_message,
 )
-
-# Modem drivers (lazy import to avoid circular dependencies)
-from . import modem
-
 from .utils import (
     crc16,
     crc16_bytes,
@@ -70,7 +68,7 @@ from .utils import (
     verify_crc32,
 )
 
-__version__ = "0.1.1"
+__version__ = "0.3.0"
 
 __all__ = [
     # Core API

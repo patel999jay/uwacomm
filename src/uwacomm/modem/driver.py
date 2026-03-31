@@ -17,7 +17,7 @@ The abstraction is intentionally NOT tied to any specific modem vendor.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Callable
+from collections.abc import Callable
 
 
 class ModemDriver(ABC):
