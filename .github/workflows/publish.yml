@@ -53,6 +53,7 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
           attestations: true
           print-hash: true
+          skip-existing: true
 
   publish-pypi:
     name: Publish to PyPI
