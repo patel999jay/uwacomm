@@ -372,5 +372,5 @@ print(f"From: {routing.source_id}, To: {routing.dest_id}")
 See the following examples for complete implementations:
 
 - **Mode 1:** [Basic Usage](../examples/basic_usage.md)
-- **Mode 2:** [Message Logging](../examples/message_logging.md)
-- **Mode 3:** [Multi-Vehicle Swarm](../examples/multi_vehicle_swarm.md)
+- **Mode 2:** [Message Logging](../examples/basic_usage.md)
+- **Mode 3:** [Multi-Vehicle Swarm](../examples/underwater_comms.md)

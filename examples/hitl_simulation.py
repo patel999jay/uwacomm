@@ -129,10 +129,7 @@ def main() -> None:
     # ========================================================================
     print("Step 5: Wait for loopback responses")
     print("-" * 70)
-    print(
-        f"  Waiting {config.transmission_delay * 2:.1f} seconds "
-        f"for acoustic propagation..."
-    )
+    print(f"  Waiting {config.transmission_delay * 2:.1f} seconds " f"for acoustic propagation...")
     print()
 
     time.sleep(config.transmission_delay * 2 + 1.0)  # Wait for all responses

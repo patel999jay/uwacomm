@@ -39,9 +39,7 @@ def demo_basic_fragmentation() -> None:
 
     # Create large message
     sensor_data = bytes(range(256))[:150]  # 150 bytes of dummy sensor data
-    msg = LargeTelemetryMessage(
-        sensor_data=sensor_data, vehicle_id=42, sequence=100
-    )
+    msg = LargeTelemetryMessage(sensor_data=sensor_data, vehicle_id=42, sequence=100)
 
     # Encode message
     encoded = encode(msg)
@@ -76,9 +74,7 @@ def demo_out_of_order_delivery() -> None:
     print()
 
     # Create and fragment message
-    msg = LargeTelemetryMessage(
-        sensor_data=b"x" * 150, vehicle_id=99, sequence=200
-    )
+    msg = LargeTelemetryMessage(sensor_data=b"x" * 150, vehicle_id=99, sequence=200)
     encoded = encode(msg)
     fragments = fragment_message(encoded, max_fragment_size=64)
 
@@ -88,14 +84,14 @@ def demo_out_of_order_delivery() -> None:
     shuffled = fragments.copy()
     random.shuffle(shuffled)
 
-    print(f"Shuffled delivery order: [scrambled]")
+    print("Shuffled delivery order: [scrambled]")
     print()
 
     # Reassemble (handles out-of-order automatically)
     reassembled = reassemble_fragments(shuffled)
     decoded = decode(LargeTelemetryMessage, reassembled)
 
-    print(f"✓ Reassembled correctly despite out-of-order delivery")
+    print("✓ Reassembled correctly despite out-of-order delivery")
     print(f"  vehicle_id={decoded.vehicle_id}, sequence={decoded.sequence}")
     print()
 
@@ -108,9 +104,7 @@ def demo_missing_fragment_detection() -> None:
     print()
 
     # Create and fragment message
-    msg = LargeTelemetryMessage(
-        sensor_data=b"y" * 150, vehicle_id=77, sequence=300
-    )
+    msg = LargeTelemetryMessage(sensor_data=b"y" * 150, vehicle_id=77, sequence=300)
     encoded = encode(msg)
     fragments = fragment_message(encoded, max_fragment_size=64)
 
@@ -129,7 +123,7 @@ def demo_missing_fragment_detection() -> None:
         reassemble_fragments(incomplete)
         print("✗ Should have detected missing fragment!")
     except FragmentationError as e:
-        print(f"✓ Missing fragment detected:")
+        print("✓ Missing fragment detected:")
         print(f"  Error: {e}")
     print()
 
@@ -154,9 +148,7 @@ def demo_modem_integration() -> None:
     print()
 
     # Prepare message
-    msg = LargeTelemetryMessage(
-        sensor_data=b"z" * 150, vehicle_id=123, sequence=400
-    )
+    msg = LargeTelemetryMessage(sensor_data=b"z" * 150, vehicle_id=123, sequence=400)
     encoded = encode(msg)
 
     # Fragment
@@ -166,7 +158,7 @@ def demo_modem_integration() -> None:
     # Collect received fragments
     received_fragments: list[bytes] = []
 
-    def on_receive(data: bytes, src_id: int) -> None:
+    def on_receive(data: bytes, _src_id: int) -> None:
         """Collect received fragments."""
         received_fragments.append(data)
         print(f"  [RX] Received fragment {len(received_fragments)}/{len(fragments)}")
@@ -181,19 +173,17 @@ def demo_modem_integration() -> None:
 
     # Wait for all fragments
     print()
-    print(f"[Wait] Waiting for acoustic propagation...")
+    print("[Wait] Waiting for acoustic propagation...")
     time.sleep(config.transmission_delay * 2 + 0.5)
 
     # Reassemble
     if len(received_fragments) == len(fragments):
         reassembled = reassemble_fragments(received_fragments)
         decoded = decode(LargeTelemetryMessage, reassembled)
-        print(f"[RX] ✓ All fragments received and reassembled")
+        print("[RX] ✓ All fragments received and reassembled")
         print(f"  vehicle_id={decoded.vehicle_id}, sequence={decoded.sequence}")
     else:
-        print(
-            f"[RX] ✗ Missing fragments: {len(fragments) - len(received_fragments)}"
-        )
+        print(f"[RX] ✗ Missing fragments: {len(fragments) - len(received_fragments)}")
 
     modem.disconnect()
     print("[Modem] Disconnected")

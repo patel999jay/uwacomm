@@ -242,7 +242,7 @@ class TestMockModemDriver:
         modem.attach_rx_callback(lambda data, src: received_3.append(data))
 
         # Send frame
-        test_data = b"\xAA\xBB\xCC"
+        test_data = b"\xaa\xbb\xcc"
         modem.send_frame(test_data, dest_id=0)
 
         # Wait
@@ -302,7 +302,7 @@ class TestMockModemDriver:
         modem.connect("/dev/null", 19200)
 
         # Send same data multiple times
-        test_data = b"\xFF\xFF\xFF\xFF"  # All 1s
+        test_data = b"\xff\xff\xff\xff"  # All 1s
         received: list[bytes] = []
 
         modem.attach_rx_callback(lambda data, src: received.append(data))
@@ -331,7 +331,7 @@ class TestMockModemDriver:
         modem = MockModemDriver(config)
         modem.connect("/dev/null", 19200)
 
-        test_data = b"\xAA\xBB\xCC\xDD"
+        test_data = b"\xaa\xbb\xcc\xdd"
         received: list[bytes] = []
 
         modem.attach_rx_callback(lambda data, src: received.append(data))
