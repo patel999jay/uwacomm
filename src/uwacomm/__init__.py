@@ -31,15 +31,19 @@ For more information, see: https://github.com/patel999jay/uwacomm
 
 from __future__ import annotations
 
+# Modem drivers (lazy import to avoid circular dependencies)
+from . import modem
 from .codec import decode, encode
 from .exceptions import (
     DecodeError,
     EncodeError,
+    FragmentationError,
     FramingError,
     PyDCCLError,
     SchemaError,
     UwacommError,
 )
+from .fragmentation import fragment_message, iter_fragments, reassemble_fragments
 from .framing import frame_message, frame_with_id, unframe_message, unframe_with_id
 from .models import BaseMessage, BoundedInt, FixedBytes, FixedStr
 from .models.fields import BoundedFloat
@@ -83,6 +87,8 @@ __all__ = [
     "RoutingHeader",
     "encode_with_routing",
     "decode_with_routing",
+    # Modem Drivers (Hardware-in-the-Loop simulation)
+    "modem",
     # Exceptions
     "UwacommError",
     "PyDCCLError",  # Backward compatibility alias
@@ -90,11 +96,16 @@ __all__ = [
     "EncodeError",
     "DecodeError",
     "FramingError",
+    "FragmentationError",
     # Framing
     "frame_message",
     "unframe_message",
     "frame_with_id",
     "unframe_with_id",
+    # Fragmentation
+    "fragment_message",
+    "reassemble_fragments",
+    "iter_fragments",
     # CRC
     "crc16",
     "crc16_bytes",

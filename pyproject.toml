@@ -53,6 +53,7 @@ protobuf = [
 dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
+    "pytest-benchmark>=4.0.0",
     "hypothesis>=6.82.0",
     "black>=23.7.0",
     "ruff>=0.0.285",
@@ -172,9 +173,15 @@ addopts = [
     "--cov-report=html",
     "--cov-report=xml",
 ]
+norecursedirs = [
+    "benchmarks",
+    ".git", ".venv", ".hypothesis", ".mypy_cache", ".tox", ".nox",
+    "__pycache__", "*.egg-info", "dist", "build", "site", "htmlcov",
+]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
+    "benchmark: marks tests as performance benchmarks",
 ]
 
 [tool.coverage.run]
@@ -191,6 +198,15 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "pass",
 ]
+
+[tool.pytest-benchmark]
+min_rounds = 100
+min_time = 0.1
+max_time = 5.0
+timer = "time.perf_counter"
+disable_gc = true
+warmup = true
+sort = "mean"
 
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]

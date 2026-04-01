@@ -67,3 +67,18 @@ class FramingError(UwacommError):
     """
 
     pass
+
+
+class FragmentationError(UwacommError):
+    """Raised when message fragmentation or reassembly fails.
+
+    Examples:
+        - max_fragment_size too small (< 5 bytes)
+        - Message requires more than 255 fragments
+        - Missing fragments during reassembly
+        - Duplicate fragments
+        - Mismatched fragment IDs or totals
+        - Invalid fragment headers
+    """
+
+    pass

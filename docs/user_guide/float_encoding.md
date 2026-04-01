@@ -381,5 +381,5 @@ The performance overhead is negligible compared to acoustic modem transmission t
 
 See complete examples:
 - [Underwater Telemetry](../examples/underwater_comms.md)
-- [Sensor Data Logging](../examples/sensor_logging.md)
-- [Multi-Vehicle Positioning](../examples/multi_vehicle_swarm.md)
+- [Sensor Data Logging](../examples/basic_usage.md)
+- [Multi-Vehicle Positioning](../examples/underwater_comms.md)

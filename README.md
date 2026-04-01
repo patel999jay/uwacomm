@@ -55,7 +55,8 @@ While DCCL is excellent, Python developers often want:
 - **🛡️ Error detection**: Built-in CRC-16/CRC-32 and framing utilities
 - **🔄 Protobuf interop**: Generate `.proto` schemas from Pydantic models
 - **📊 Size analysis**: Calculate encoded sizes before transmission
-- **🧪 Well-tested**: 123+ passing tests, 86% code coverage
+- **🧪 Well-tested**: 182+ passing tests, 88% code coverage
+- **⚡ Benchmarked**: pytest-benchmark suite for codec, float, routing, and fragmentation throughput
 
 ---
 
@@ -182,6 +183,218 @@ routing, update = decode_with_routing(FormationUpdate, data)
 if routing.dest_id == 255:  # Broadcast
     print(f"Formation update from vehicle {routing.source_id}")
 ```
+
+---
+
+## Hardware-in-the-Loop (HITL) Simulation
+
+Test acoustic modem communication **without physical hardware** using the mock modem driver. Perfect for CI/CD, development, and debugging before deploying to real underwater systems.
+
+### Mock Modem Driver
+
+The `MockModemDriver` simulates underwater acoustic communication with configurable channel characteristics:
+
+```python
+from uwacomm import encode, decode, BaseMessage, BoundedInt
+from uwacomm.modem import MockModemDriver, MockModemConfig
+from typing import ClassVar
+
+class Heartbeat(BaseMessage):
+    """Vehicle heartbeat message."""
+    depth: int = BoundedInt(ge=0, le=1000)
+    battery: int = BoundedInt(ge=0, le=100)
+    uwacomm_id: ClassVar[int | None] = 10
+
+# Configure realistic underwater channel
+config = MockModemConfig(
+    transmission_delay=1.5,      # 1.5 second round-trip (1 km range)
+    packet_loss_probability=0.1,  # 10% packet loss
+    bit_error_rate=0.0005,        # 0.05% BER (acoustic noise)
+    max_frame_size=64,            # 64 byte max (typical modem limit)
+    data_rate=80,                 # 80 bps (long range, low frequency)
+)
+
+# Create and connect mock modem
+modem = MockModemDriver(config)
+modem.connect("/dev/null", 19200)  # Fake port (simulation mode)
+
+# Register RX callback
+def on_receive(data: bytes, src_id: int):
+    msg = decode(Heartbeat, data)
+    print(f"Received from {src_id}: depth={msg.depth}m, battery={msg.battery}%")
+
+modem.attach_rx_callback(on_receive)
+
+# Send frame (will echo back after transmission_delay seconds)
+heartbeat = Heartbeat(depth=250, battery=87)
+modem.send_frame(encode(heartbeat), dest_id=0)
+
+# Wait for loopback
+import time
+time.sleep(2.0)
+modem.disconnect()
+```
+
+### Channel Simulation Features
+
+The mock modem simulates realistic acoustic channel conditions:
+
+- **Transmission delay**: Acoustic propagation time (speed of sound in seawater ≈ 1500 m/s)
+  - Short range (< 1 km): 0.5 - 2.0 seconds
+  - Medium range (1-5 km): 2.0 - 7.0 seconds
+  - Long range (> 5 km): 7.0 - 15.0 seconds
+
+- **Packet loss**: Unreliable underwater channel
+  - Good conditions: 1-5% loss
+  - Moderate conditions: 5-15% loss
+  - Poor conditions: 15-30% loss
+
+- **Bit errors**: Acoustic noise and multipath
+  - Good SNR: 0.01-0.1% BER
+  - Moderate SNR: 0.1-1% BER
+  - Poor SNR: 1-10% BER
+
+- **Loopback testing**: Sent frames echo back to RX callbacks after simulated delay
+
+### Vendor-Agnostic Abstraction
+
+The `ModemDriver` interface is **completely vendor-agnostic**:
+
+```python
+from uwacomm.modem import ModemDriver
+
+# Abstract interface works with ANY acoustic modem:
+# - MockModemDriver (simulation)
+# - WhoiModemDriver (WHOI MicroModem 2) - future
+# - EvoLogicsModemDriver (EvoLogics S2C) - future
+# - SonarbyneModemDriver (Sonardyne) - future
+# - Your custom driver (subclass ModemDriver)
+```
+
+**Key Benefits:**
+- ✅ Test without physical hardware (CI/CD, development)
+- ✅ Switch modem vendors without changing application code
+- ✅ Reproducible test scenarios (controlled channel conditions)
+- ✅ Third-party driver support (extensible design)
+
+See `examples/hitl_simulation.py` for a complete demo.
+
+---
+
+## Message Fragmentation
+
+Split large messages across multiple acoustic modem frames. Acoustic modems typically have strict frame size limits (32-64 bytes), requiring larger messages to be fragmented for transmission.
+
+### Automatic Fragmentation
+
+```python
+from uwacomm import encode, decode, BaseMessage, FixedBytes
+from uwacomm.fragmentation import fragment_message, reassemble_fragments
+from typing import ClassVar
+
+class LargeMessage(BaseMessage):
+    """Large telemetry message (150+ bytes)."""
+    sensor_data: bytes = FixedBytes(length=150)
+    uwacomm_id: ClassVar[int | None] = 20
+
+# Encode message
+msg = LargeMessage(sensor_data=b'x' * 150)
+encoded = encode(msg)  # ~153 bytes
+
+# Fragment for 64-byte modem frames
+fragments = fragment_message(encoded, max_fragment_size=64)
+# Returns: 3 fragments (64 + 64 + 25 bytes)
+
+# Send fragments over acoustic modem...
+for frag in fragments:
+    modem.send_frame(frag, dest_id=0)
+
+# Receiver collects fragments and reassembles
+reassembled = reassemble_fragments(fragments)
+decoded = decode(LargeMessage, reassembled)  # ✓ Perfect reconstruction
+```
+
+### Fragment Header Format
+
+Each fragment includes a 4-byte header for reliable reassembly:
+
+```
+┌─────────────┬─────────┬─────────┬─────────────────┐
+│ Fragment ID │ Seq Num │  Total  │  Data Chunk     │
+│  16 bits    │  8 bits │ 8 bits  │  N bytes        │
+└─────────────┴─────────┴─────────┴─────────────────┘
+```
+
+- **Fragment ID** (16 bits): Unique identifier for this message (0-65535)
+- **Sequence Number** (8 bits): Fragment index (0-255)
+- **Total** (8 bits): Total number of fragments (1-255)
+- **Data Chunk** (N bytes): Actual payload data
+
+### Robust Error Detection
+
+- **Out-of-order delivery**: Fragments can arrive in any order
+- **Missing fragments**: Detected with clear error messages
+- **Duplicate fragments**: Detected and rejected
+- **Concurrent messages**: Fragment IDs distinguish multiple simultaneous messages
+
+```python
+from uwacomm.exceptions import FragmentationError
+
+# Simulate packet loss
+fragments = fragment_message(data, max_fragment_size=64)
+del fragments[1]  # Lost fragment 1
+
+try:
+    reassemble_fragments(fragments)
+except FragmentationError as e:
+    print(f"Missing fragments: {e}")
+    # Error: Missing fragments: [1]. Expected 4 fragments, got 3
+```
+
+### Integration with Mock Modem
+
+```python
+from uwacomm.modem import MockModemDriver, MockModemConfig
+from uwacomm.fragmentation import fragment_message, reassemble_fragments
+
+# Fragment large message
+encoded = encode(large_message)
+fragments = fragment_message(encoded, max_fragment_size=64)
+
+# Send over mock modem
+modem = MockModemDriver()
+modem.connect("/dev/null", 19200)
+
+for frag in fragments:
+    modem.send_frame(frag, dest_id=0)
+
+# Receiver reassembles
+received_fragments = []
+def on_receive(data: bytes, src_id: int):
+    received_fragments.append(data)
+
+modem.attach_rx_callback(on_receive)
+# ... wait for all fragments ...
+
+reassembled = reassemble_fragments(received_fragments)
+decoded = decode(MessageClass, reassembled)
+```
+
+### Memory-Efficient Iteration
+
+For very large messages, use `iter_fragments()` to avoid storing all fragments in memory:
+
+```python
+from uwacomm.fragmentation import iter_fragments
+
+large_data = b'x' * 10000  # 10 KB message
+
+# Send fragments without creating full list
+for fragment in iter_fragments(large_data, max_fragment_size=64):
+    modem.send_frame(fragment, dest_id=0)
+```
+
+See `examples/fragmentation_demo.py` for complete examples including out-of-order delivery, missing fragment detection, and concurrent fragmented messages.
 
 ---
 
@@ -314,6 +527,10 @@ Built on Pydantic v2, uwacomm provides:
 
 See the [`examples/`](examples/) directory for complete, runnable examples:
 
+### **NEW in v0.3.0:**
+- [`hitl_simulation.py`](examples/hitl_simulation.py) - Hardware-in-the-Loop simulation with MockModemDriver
+- [`fragmentation_demo.py`](examples/fragmentation_demo.py) - Message fragmentation for size-limited acoustic modems
+
 ### **NEW in v0.2.0:**
 - [`generic_uw_messages.py`](examples/generic_uw_messages.py) - Generic underwater vehicle message definitions
 - [`demo_multi_mode.py`](examples/demo_multi_mode.py) - All three encoding modes + broadcast patterns
@@ -337,8 +554,8 @@ See the [`examples/`](examples/) directory for complete, runnable examples:
 - ✅ Fixed-length bytes
 - ✅ Fixed-length strings (UTF-8)
 - ✅ **NEW:** Floats with precision (DCCL-style bounded floats) - v0.2.0
-- ⏸️ Nested messages (planned for v0.3.0)
-- ⏸️ Variable-length arrays/strings (planned for v0.3.0)
+- ⏸️ Nested messages (planned for v0.4.0)
+- ⏸️ Variable-length arrays/strings (planned for v0.4.0)
 
 ### Encoding Modes
 
@@ -361,7 +578,17 @@ See the [`examples/`](examples/) directory for complete, runnable examples:
 - ✅ Message ID multiplexing
 - ✅ Encoded size calculation
 - ✅ Protobuf schema generation
-- ⏸️ Fragmentation/reassembly (planned for v0.3.0)
+- ✅ **NEW:** Message fragmentation/reassembly - v0.3.0
+- ✅ **NEW:** Performance benchmarking suite (pytest-benchmark) - v0.3.0
+
+### Hardware-in-the-Loop (HITL) Simulation
+
+- ✅ **NEW:** MockModemDriver for testing without hardware - v0.3.0
+- ✅ Configurable acoustic channel simulation (delay, loss, bit errors)
+- ✅ Loopback testing (echo sent frames back)
+- ✅ Vendor-agnostic ModemDriver abstraction
+- ✅ Multiple RX callback support
+- ⏸️ Real modem drivers (WHOI, EvoLogics, Sonardyne) - planned for v0.4.0+
 
 ---
 
@@ -410,6 +637,18 @@ pip install -e ".[dev]"
 ```bash
 pytest
 ```
+
+### Run Benchmarks
+
+```bash
+# Run all benchmarks (sorted by mean time)
+pytest tests/benchmarks/ --benchmark-only --benchmark-sort=mean
+
+# Save results to JSON for tracking over time
+pytest tests/benchmarks/ --benchmark-only --benchmark-json=benchmark_results.json
+```
+
+Benchmarks cover encode/decode throughput, float precision overhead, routing header cost, and fragmentation/reassembly speed. They are excluded from the default `pytest` run.
 
 ### Linting
 

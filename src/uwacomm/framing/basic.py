@@ -24,7 +24,7 @@ def frame_message(
     """Frame a message with optional length prefix and CRC.
 
     The frame structure is:
-    - [Length (4 bytes, optional)] [Payload] [CRC (2 or 4 bytes, optional)]
+    - ``[Length (4 bytes, optional)]`` ``[Payload]`` ``[CRC (2 or 4 bytes, optional)]``
 
     Args:
         payload: Message payload to frame
@@ -158,7 +158,7 @@ def frame_with_id(
     """Frame a message with a message ID and optional CRC.
 
     The frame structure is:
-    - [Length (4 bytes)] [Message ID (2 bytes)] [Payload] [CRC (optional)]
+    - ``[Length (4 bytes)]`` ``[Message ID (2 bytes)]`` ``[Payload]`` ``[CRC (optional)]``
 
     This is useful for multiplexing multiple message types over a single channel.
 
