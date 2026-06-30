@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from ..exceptions import DecodeError
 from .bitpack import BitUnpacker
-from .schema import FieldSchema, MessageSchema
+from .schema import FieldSchema, MessageSchema  # MessageSchema used in nested decode
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -146,6 +146,45 @@ def _decode_field(unpacker: BitUnpacker, field_schema: FieldSchema) -> Any:
         DecodeError: If data is invalid
         IndexError: If data is truncated
     """
+    # Nested BaseMessage: decode each field inline and construct instance
+    if field_schema.is_nested and field_schema.nested_class is not None:
+        nested_schema = MessageSchema.from_model(field_schema.nested_class)
+        nested_values: dict[str, Any] = {}
+        for nested_field in nested_schema.fields:
+            nested_values[nested_field.name] = _decode_field(unpacker, nested_field)
+        try:
+            return field_schema.nested_class(**nested_values)
+        except Exception as e:
+            raise DecodeError(
+                f"Field {field_schema.name}: failed to construct nested "
+                f"{field_schema.nested_class.__name__}: {e}"
+            ) from e
+
+    # Variable-length bytes
+    if field_schema.is_varlen and field_schema.is_bytes:
+        max_len = field_schema.max_length or 0
+        length_bits = FieldSchema._bits_for_bounded_int(0, max_len) if max_len > 0 else 1
+        actual_len = unpacker.read_uint(length_bits)
+        return unpacker.read_bytes(actual_len)
+
+    # Variable-length string (ASCII)
+    if field_schema.is_varlen and field_schema.is_str:
+        max_len = field_schema.max_length or 0
+        length_bits = FieldSchema._bits_for_bounded_int(0, max_len) if max_len > 0 else 1
+        actual_len = unpacker.read_uint(length_bits)
+        raw = unpacker.read_bytes(actual_len)
+        try:
+            return raw.decode("ascii")
+        except UnicodeDecodeError as e:
+            raise DecodeError(f"Field {field_schema.name}: invalid ASCII in VarStr: {e}") from e
+
+    # Variable-length list
+    if field_schema.is_varlen and field_schema.is_list:
+        max_len = field_schema.max_length or 0
+        length_bits = FieldSchema._bits_for_bounded_int(0, max_len) if max_len > 0 else 1
+        count = unpacker.read_uint(length_bits)
+        return _decode_list_items(unpacker, field_schema, count)
+
     # Boolean
     if field_schema.python_type is bool:
         return unpacker.read_bool()
@@ -154,15 +193,12 @@ def _decode_field(unpacker: BitUnpacker, field_schema: FieldSchema) -> Any:
     if field_schema.enum_type is not None:
         num_bits = field_schema.bits_required()
         ordinal = unpacker.read_uint(num_bits)
-
-        # Convert ordinal back to enum value
         enum_values = list(field_schema.enum_type)
         if ordinal >= len(enum_values):
             raise DecodeError(
                 f"Field {field_schema.name}: invalid enum ordinal {ordinal} "
                 f"(only {len(enum_values)} values)"
             )
-
         return enum_values[ordinal]
 
     # Bounded integer
@@ -173,64 +209,70 @@ def _decode_field(unpacker: BitUnpacker, field_schema: FieldSchema) -> Any:
     ):
         num_bits = field_schema.bits_required()
         offset = unpacker.read_uint(num_bits)
-
-        # Convert offset back to actual value
         min_val = int(field_schema.min_value)
         value = min_val + offset
-
-        # Validate bounds (defensive check)
         max_val = int(field_schema.max_value)
         if value > max_val:
             raise DecodeError(
                 f"Field {field_schema.name}: decoded value {value} exceeds max {max_val}"
             )
-
         return value
 
     # Bounded float (DCCL-style: descale from integer)
     if field_schema.python_type is float:
         if field_schema.min_value is None or field_schema.max_value is None:
             raise DecodeError(f"Field {field_schema.name}: float requires min/max bounds")
-
         precision = field_schema.precision or 0
         min_float = float(field_schema.min_value)
         max_float = float(field_schema.max_value)
-
-        # Decode scaled integer
         max_scaled = round((max_float - min_float) * (10**precision))
         num_bits = field_schema._bits_for_bounded_int(0, max_scaled)
         scaled = unpacker.read_uint(num_bits)
-
-        # Descale to float
-        value = min_float + (scaled / (10**precision))
-
-        # Validate bounds (defensive check)
-        if value < min_float or value > max_float:
+        value_f = min_float + (scaled / (10**precision))
+        if value_f < min_float or value_f > max_float:
             raise DecodeError(
-                f"Field {field_schema.name}: decoded value {value} out of bounds "
+                f"Field {field_schema.name}: decoded value {value_f} out of bounds "
                 f"[{min_float}, {max_float}]"
             )
-
-        return value
+        return value_f
 
     # Fixed-length bytes
     if field_schema.is_bytes and field_schema.max_length is not None:
-        num_bytes = field_schema.max_length
-        return unpacker.read_bytes(num_bytes)
+        return unpacker.read_bytes(field_schema.max_length)
 
     # Fixed-length string
     if field_schema.is_str and field_schema.max_length is not None:
-        num_bytes = field_schema.max_length
-        raw_bytes = unpacker.read_bytes(num_bytes)
-
-        # Decode UTF-8
+        raw_bytes = unpacker.read_bytes(field_schema.max_length)
         try:
             return raw_bytes.decode("utf-8")
         except UnicodeDecodeError as e:
             raise DecodeError(f"Field {field_schema.name}: invalid UTF-8 encoding: {e}") from e
 
-    # Unsupported type
     raise DecodeError(
         f"Field {field_schema.name}: unsupported type {field_schema.python_type} "
         f"or missing constraints"
     )
+
+
+def _decode_list_items(unpacker: BitUnpacker, field_schema: FieldSchema, count: int) -> list[Any]:
+    """Decode `count` elements of a VarList field."""
+    if field_schema.item_is_bool:
+        return [unpacker.read_bool() for _ in range(count)]
+
+    if field_schema.item_min_value is None or field_schema.item_max_value is None:
+        raise DecodeError(f"Field {field_schema.name}: VarList requires item_ge and item_le")
+
+    if field_schema.item_precision is not None:
+        # Float items
+        precision = field_schema.item_precision
+        min_val = float(field_schema.item_min_value)
+        max_val_f = float(field_schema.item_max_value)
+        max_scaled = round((max_val_f - min_val) * (10**precision))
+        element_bits = FieldSchema._bits_for_bounded_int(0, max_scaled)
+        return [min_val + unpacker.read_uint(element_bits) / (10**precision) for _ in range(count)]
+    else:
+        # Integer items
+        min_val_i = int(field_schema.item_min_value)
+        max_val_i = int(field_schema.item_max_value)
+        element_bits = FieldSchema._bits_for_bounded_int(min_val_i, max_val_i)
+        return [min_val_i + unpacker.read_uint(element_bits) for _ in range(count)]

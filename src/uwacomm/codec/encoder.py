@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from ..exceptions import EncodeError
 from .bitpack import BitPacker
-from .schema import FieldSchema, MessageSchema
+from .schema import FieldSchema, MessageSchema  # MessageSchema used in nested encode
 
 
 def encode(message: BaseModel, include_id: bool = False, routing: Any = None) -> bytes:
@@ -130,8 +130,78 @@ def _encode_field(packer: BitPacker, field_schema: FieldSchema, value: Any) -> N
     if value is None:
         if field_schema.required:
             raise EncodeError(f"Field {field_schema.name} is required but got None")
-        # For optional fields in v0.1.0, we don't support them yet
-        raise EncodeError(f"Optional fields not supported in v0.1.0: {field_schema.name}")
+        raise EncodeError(f"Optional fields not yet supported: {field_schema.name}")
+
+    # Nested BaseMessage: encode each field inline (no ID, no size prefix)
+    if field_schema.is_nested and field_schema.nested_class is not None:
+        from pydantic import BaseModel
+
+        if not isinstance(value, BaseModel):
+            raise EncodeError(
+                f"Field {field_schema.name}: expected {field_schema.nested_class.__name__}, "
+                f"got {type(value).__name__}"
+            )
+        nested_schema = MessageSchema.from_model(field_schema.nested_class)
+        for nested_field in nested_schema.fields:
+            _encode_field(packer, nested_field, getattr(value, nested_field.name))
+        return
+
+    # Variable-length bytes
+    if field_schema.is_varlen and field_schema.is_bytes:
+        if not isinstance(value, bytes):
+            raise EncodeError(
+                f"Field {field_schema.name}: expected bytes, got {type(value).__name__}"
+            )
+        max_len = field_schema.max_length or 0
+        actual_len = len(value)
+        if actual_len > max_len:
+            raise EncodeError(
+                f"Field {field_schema.name}: {actual_len} bytes exceeds max_length={max_len}"
+            )
+        length_bits = FieldSchema._bits_for_bounded_int(0, max_len)
+        packer.write_uint(actual_len, length_bits)
+        packer.write_bytes(value)
+        return
+
+    # Variable-length string (ASCII only for deterministic byte-length)
+    if field_schema.is_varlen and field_schema.is_str:
+        if not isinstance(value, str):
+            raise EncodeError(
+                f"Field {field_schema.name}: expected str, got {type(value).__name__}"
+            )
+        try:
+            encoded_str = value.encode("ascii")
+        except UnicodeEncodeError as err:
+            raise EncodeError(
+                f"Field {field_schema.name}: VarStr only supports ASCII characters"
+            ) from err
+        max_len = field_schema.max_length or 0
+        actual_len = len(encoded_str)
+        if actual_len > max_len:
+            raise EncodeError(
+                f"Field {field_schema.name}: {actual_len} chars exceeds max_length={max_len}"
+            )
+        length_bits = FieldSchema._bits_for_bounded_int(0, max_len)
+        packer.write_uint(actual_len, length_bits)
+        packer.write_bytes(encoded_str)
+        return
+
+    # Variable-length list
+    if field_schema.is_varlen and field_schema.is_list:
+        if not isinstance(value, list):
+            raise EncodeError(
+                f"Field {field_schema.name}: expected list, got {type(value).__name__}"
+            )
+        max_len = field_schema.max_length or 0
+        count = len(value)
+        if count > max_len:
+            raise EncodeError(
+                f"Field {field_schema.name}: {count} items exceeds max_length={max_len}"
+            )
+        length_bits = FieldSchema._bits_for_bounded_int(0, max_len)
+        packer.write_uint(count, length_bits)
+        _encode_list_items(packer, field_schema, value)
+        return
 
     # Boolean
     if field_schema.python_type is bool:
@@ -149,7 +219,6 @@ def _encode_field(packer: BitPacker, field_schema: FieldSchema, value: Any) -> N
                 f"Field {field_schema.name}: expected {field_schema.enum_type.__name__}, "
                 f"got {type(value).__name__}"
             )
-        # Encode enum as its ordinal (0-indexed position in enum)
         enum_values = list(field_schema.enum_type)
         try:
             ordinal = enum_values.index(value)
@@ -157,9 +226,7 @@ def _encode_field(packer: BitPacker, field_schema: FieldSchema, value: Any) -> N
             raise EncodeError(
                 f"Field {field_schema.name}: {value} not in {field_schema.enum_type.__name__}"
             ) from err
-
-        num_bits = field_schema.bits_required()
-        packer.write_uint(ordinal, num_bits)
+        packer.write_uint(ordinal, field_schema.bits_required())
         return
 
     # Bounded integer
@@ -172,19 +239,13 @@ def _encode_field(packer: BitPacker, field_schema: FieldSchema, value: Any) -> N
             raise EncodeError(
                 f"Field {field_schema.name}: expected int, got {type(value).__name__}"
             )
-
         min_val = int(field_schema.min_value)
         max_val = int(field_schema.max_value)
-
         if value < min_val or value > max_val:
             raise EncodeError(
                 f"Field {field_schema.name}: value {value} out of bounds [{min_val}, {max_val}]"
             )
-
-        # Encode as offset from min_value
-        offset = value - min_val
-        num_bits = field_schema.bits_required()
-        packer.write_uint(offset, num_bits)
+        packer.write_uint(value - min_val, field_schema.bits_required())
         return
 
     # Bounded float (DCCL-style: scale to integer)
@@ -193,28 +254,19 @@ def _encode_field(packer: BitPacker, field_schema: FieldSchema, value: Any) -> N
             raise EncodeError(
                 f"Field {field_schema.name}: expected float, got {type(value).__name__}"
             )
-
         if field_schema.min_value is None or field_schema.max_value is None:
             raise EncodeError(f"Field {field_schema.name}: float requires min/max bounds")
-
         precision = field_schema.precision or 0
         min_float = float(field_schema.min_value)
         max_float = float(field_schema.max_value)
-
-        # Scale to integer
         scaled = round((value - min_float) * (10**precision))
-
-        # Validate range
         max_scaled = round((max_float - min_float) * (10**precision))
         if scaled < 0 or scaled > max_scaled:
             raise EncodeError(
                 f"Field {field_schema.name}: value {value} out of bounds "
                 f"[{min_float}, {max_float}]"
             )
-
-        # Encode as bounded integer
-        num_bits = field_schema.bits_required()
-        packer.write_uint(scaled, num_bits)
+        packer.write_uint(scaled, field_schema.bits_required())
         return
 
     # Fixed-length bytes
@@ -223,14 +275,12 @@ def _encode_field(packer: BitPacker, field_schema: FieldSchema, value: Any) -> N
             raise EncodeError(
                 f"Field {field_schema.name}: expected bytes, got {type(value).__name__}"
             )
-
         expected_length = field_schema.max_length
         if len(value) != expected_length:
             raise EncodeError(
                 f"Field {field_schema.name}: expected {expected_length} bytes, "
                 f"got {len(value)} bytes"
             )
-
         packer.write_bytes(value)
         return
 
@@ -240,21 +290,58 @@ def _encode_field(packer: BitPacker, field_schema: FieldSchema, value: Any) -> N
             raise EncodeError(
                 f"Field {field_schema.name}: expected str, got {type(value).__name__}"
             )
-
         expected_length = field_schema.max_length
         if len(value) != expected_length:
             raise EncodeError(
                 f"Field {field_schema.name}: expected {expected_length} characters, "
                 f"got {len(value)} characters"
             )
-
-        # Encode as UTF-8 bytes
-        encoded_str = value.encode("utf-8")
-        packer.write_bytes(encoded_str)
+        packer.write_bytes(value.encode("utf-8"))
         return
 
-    # Unsupported type
     raise EncodeError(
         f"Field {field_schema.name}: unsupported type {field_schema.python_type} "
         f"or missing constraints"
     )
+
+
+def _encode_list_items(packer: BitPacker, field_schema: FieldSchema, items: list[Any]) -> None:
+    """Encode the elements of a VarList field."""
+    if field_schema.item_is_bool:
+        for item in items:
+            packer.write_bool(bool(item))
+        return
+
+    if field_schema.item_min_value is None or field_schema.item_max_value is None:
+        raise EncodeError(f"Field {field_schema.name}: VarList requires item_ge and item_le")
+
+    if field_schema.item_precision is not None:
+        # Float items
+        precision = field_schema.item_precision
+        min_val = float(field_schema.item_min_value)
+        max_val = float(field_schema.item_max_value)
+        max_scaled = round((max_val - min_val) * (10**precision))
+        element_bits = FieldSchema._bits_for_bounded_int(0, max_scaled)
+        for item in items:
+            scaled = round((float(item) - min_val) * (10**precision))
+            if scaled < 0 or scaled > max_scaled:
+                raise EncodeError(
+                    f"Field {field_schema.name}: item {item} out of bounds [{min_val}, {max_val}]"
+                )
+            packer.write_uint(scaled, element_bits)
+    else:
+        # Integer items
+        min_val_i = int(field_schema.item_min_value)
+        max_val_i = int(field_schema.item_max_value)
+        element_bits = FieldSchema._bits_for_bounded_int(min_val_i, max_val_i)
+        for item in items:
+            if not isinstance(item, int):
+                raise EncodeError(
+                    f"Field {field_schema.name}: list item must be int, got {type(item).__name__}"
+                )
+            if item < min_val_i or item > max_val_i:
+                raise EncodeError(
+                    f"Field {field_schema.name}: item {item} out of bounds "
+                    f"[{min_val_i}, {max_val_i}]"
+                )
+            packer.write_uint(item - min_val_i, element_bits)

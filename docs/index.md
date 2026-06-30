@@ -20,11 +20,15 @@
 - Configurable precision (0-6 decimal places)
 - Perfect for GPS coordinates, sensor readings, telemetry
 
+✅ **Nested Messages** *(v0.4.0)* - Compose `BaseMessage` fields inline with zero overhead
+
+✅ **Variable-Length Fields** *(v0.4.0)* - `VarBytes`, `VarStr`, `VarList` — pay only for bytes actually sent
+
 ✅ **Type-Safe** - Built on Pydantic v2 with full type hints
 
 ✅ **Zero Dependencies** - Pure Python, no external C libraries
 
-✅ **Production Ready** - 123 passing tests, 86% code coverage
+✅ **Production Ready** - 224 passing tests, 81% code coverage
 
 ---
 
@@ -479,7 +483,7 @@ Traditional encoding formats are wasteful for bandwidth-constrained underwater a
 
 ### Production-Grade Quality
 
-- ✅ **123 passing tests** with 86% code coverage
+- ✅ **224 passing tests** with 81% code coverage
 - ✅ **Type-safe** with full Pydantic v2 integration
 - ✅ **Zero dependencies** (pure Python, no C libraries)
 - ✅ **Well-documented** with comprehensive guides and examples

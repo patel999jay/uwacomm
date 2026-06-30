@@ -23,7 +23,7 @@ class FieldSchema:
 
     Attributes:
         name: Field name
-        python_type: Python type annotation
+        python_type: Python type annotation (element type for lists)
         required: Whether field is required (not Optional)
         default: Default value if any
         min_value: Minimum value constraint (for numeric types)
@@ -34,6 +34,14 @@ class FieldSchema:
         is_list: Whether field is a list/array
         is_bytes: Whether field is bytes type
         is_str: Whether field is str type
+        precision: Decimal precision for float fields (DCCL-style)
+        is_nested: Whether field is a nested BaseModel subclass
+        nested_class: The nested model class (when is_nested is True)
+        is_varlen: Whether field is variable-length (bytes/str/list with length prefix)
+        item_min_value: Minimum value for VarList elements
+        item_max_value: Maximum value for VarList elements
+        item_precision: Decimal precision for float VarList elements
+        item_is_bool: Whether VarList elements are booleans
     """
 
     name: str
@@ -48,17 +56,49 @@ class FieldSchema:
     is_list: bool
     is_bytes: bool
     is_str: bool
-    precision: int | None = None  # For float encoding (DCCL-style)
+    precision: int | None = None
+    is_nested: bool = False
+    nested_class: Any = None  # type[BaseModel] | None
+    is_varlen: bool = False
+    item_min_value: int | float | None = None
+    item_max_value: int | float | None = None
+    item_precision: int | None = None
+    item_is_bool: bool = False
 
     def bits_required(self) -> int:
-        """Calculate the minimum number of bits required to encode this field.
+        """Calculate the number of bits required to encode this field.
+
+        For variable-length fields, returns the MAXIMUM possible bits.
+        For nested messages, returns the total bits of the nested schema.
 
         Returns:
-            Number of bits required
+            Number of bits required (max for varlen fields)
 
         Raises:
             SchemaError: If field type is not supported or constraints are missing
         """
+        # Nested message: sum the nested schema's bits inline
+        if self.is_nested and self.nested_class is not None:
+            nested_schema = MessageSchema.from_model(self.nested_class)
+            return nested_schema.total_bits()
+
+        # Variable-length bytes/str: length-prefix bits + max payload bits
+        if self.is_varlen and (self.is_bytes or self.is_str):
+            max_len = self.max_length or 0
+            if max_len == 0:
+                return 1
+            length_bits = self._bits_for_bounded_int(0, max_len)
+            return length_bits + max_len * 8
+
+        # Variable-length list: length-prefix bits + max element bits
+        if self.is_varlen and self.is_list:
+            max_len = self.max_length or 0
+            if max_len == 0:
+                return 1
+            length_bits = self._bits_for_bounded_int(0, max_len)
+            element_bits = self._item_bits()
+            return length_bits + max_len * element_bits
+
         # Boolean: 1 bit
         if self.python_type is bool:
             return 1
@@ -69,7 +109,7 @@ class FieldSchema:
             if num_values == 0:
                 raise SchemaError(f"Enum {self.enum_type} has no values")
             if num_values == 1:
-                return 1  # Single value, still need 1 bit
+                return 1
             return math.ceil(math.log2(num_values))
 
         # Bounded integer: calculate bits from range
@@ -86,24 +126,18 @@ class FieldSchema:
             precision = self.precision or 0
             min_val = float(self.min_value)
             max_val = float(self.max_value)
-            # Scale to integer range
             max_scaled = round((max_val - min_val) * (10**precision))
             return self._bits_for_bounded_int(0, max_scaled)
 
         # Fixed-length bytes/str: length * 8 bits
         if (self.is_bytes or self.is_str) and self.max_length is not None:
-            if self.min_length is not None and self.min_length != self.max_length:
-                raise SchemaError(
-                    f"Field {self.name}: variable-length bytes/str not supported in v0.1.0. "
-                    f"Use fixed length (min_length == max_length)."
-                )
             return self.max_length * 8
 
-        # Fixed-length list: not implemented in v0.1.0
+        # List without VarList helper: error
         if self.is_list:
             raise SchemaError(
-                f"Field {self.name}: array support is limited in v0.1.0. "
-                f"Use fixed-length bytes for byte arrays."
+                f"Field {self.name}: list fields require the VarList() helper with "
+                f"max_length and item constraints (item_ge, item_le)."
             )
 
         # Unsupported or missing constraints
@@ -115,7 +149,24 @@ class FieldSchema:
 
         raise SchemaError(
             f"Field {self.name}: unsupported type {self.python_type}. "
-            f"Supported: bool, bounded int, enum, fixed bytes/str."
+            f"Supported: bool, bounded int/float, enum, fixed/variable bytes/str, "
+            f"variable list, nested BaseMessage."
+        )
+
+    def _item_bits(self) -> int:
+        """Bits required per VarList element."""
+        if self.item_is_bool:
+            return 1
+        if self.item_min_value is not None and self.item_max_value is not None:
+            if self.item_precision is not None:
+                max_scaled = round(
+                    (float(self.item_max_value) - float(self.item_min_value))
+                    * (10**self.item_precision)
+                )
+                return self._bits_for_bounded_int(0, max_scaled)
+            return self._bits_for_bounded_int(int(self.item_min_value), int(self.item_max_value))
+        raise SchemaError(
+            f"Field {self.name}: VarList with non-bool elements requires item_ge and item_le"
         )
 
     @staticmethod
@@ -261,25 +312,66 @@ class MessageSchema:
         is_list = False
         is_bytes = False
         is_str = False
+        is_nested = False
+        nested_class = None
+        is_varlen = False
+        item_min_value: int | float | None = None
+        item_max_value: int | float | None = None
+        item_precision: int | None = None
+        item_is_bool = False
 
-        # Check for enum
-        if isinstance(annotation, type) and issubclass(annotation, enum.Enum):
-            enum_type = annotation
+        # Check for nested BaseModel subclass (before list/bytes/str)
+        if (
+            isinstance(annotation, type)
+            and issubclass(annotation, BaseModel)
+            and annotation is not BaseModel
+        ):
+            is_nested = True
+            nested_class = annotation
+        else:
+            # Check for enum
+            if isinstance(annotation, type) and issubclass(annotation, enum.Enum):
+                enum_type = annotation
 
-        # Check for list
-        list_origin = get_origin(annotation)
-        if list_origin is list:
-            is_list = True
-            # Get element type
-            list_args = get_args(annotation)
-            if list_args:
-                annotation = list_args[0]
+            # Check for list; reassign annotation to element type
+            list_origin = get_origin(annotation)
+            if list_origin is list:
+                is_list = True
+                list_args = get_args(annotation)
+                if list_args:
+                    annotation = list_args[0]
 
-        # Check for bytes/str
-        if annotation is bytes:
-            is_bytes = True
-        if annotation is str:
-            is_str = True
+                # Extract per-element constraints from VarList json_schema_extra
+                jse = field_info.json_schema_extra
+                if isinstance(jse, dict):
+                    _ige = jse.get("item_ge")
+                    _ile = jse.get("item_le")
+                    _ipr = jse.get("item_precision")
+                    if isinstance(_ige, (int, float)):
+                        item_min_value = _ige
+                    if isinstance(_ile, (int, float)):
+                        item_max_value = _ile
+                    if isinstance(_ipr, int):
+                        item_precision = _ipr
+
+                if annotation is bool:
+                    item_is_bool = True
+
+            # Check for bytes/str (element type after list unwrap, or direct)
+            if annotation is bytes:
+                is_bytes = True
+            if annotation is str:
+                is_str = True
+
+        # Determine variable-length: list with max_length, or bytes/str where min != max
+        if not is_nested and (
+            is_list
+            and max_length is not None
+            or (is_bytes or is_str)
+            and max_length is not None
+            and (min_length is None or min_length != max_length)
+        ):
+            is_varlen = True
 
         return FieldSchema(
             name=name,
@@ -295,6 +387,13 @@ class MessageSchema:
             is_bytes=is_bytes,
             is_str=is_str,
             precision=precision,
+            is_nested=is_nested,
+            nested_class=nested_class,
+            is_varlen=is_varlen,
+            item_min_value=item_min_value,
+            item_max_value=item_max_value,
+            item_precision=item_precision,
+            item_is_bool=item_is_bool,
         )
 
     def total_bits(self) -> int:

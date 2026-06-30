@@ -162,3 +162,6 @@ examples/validate_claims.py
 examples/verify_dccl_sizes.sh
 GITEA_SETUP.md
 COPILOT_HANDOFF.md
+
+# Claude Code local context (private, not for remote)
+.claude/
