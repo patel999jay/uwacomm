@@ -94,6 +94,78 @@ def FixedInt(*, bits: int, signed: bool = False, **kwargs: Any) -> FieldInfo:
     return cast(FieldInfo, Field(json_schema_extra={"bits": bits, "signed": signed}, **kwargs))
 
 
+def VarBytes(*, max_length: int, **kwargs: Any) -> FieldInfo:
+    """Create a variable-length bytes field (0 to max_length bytes).
+
+    A compact length prefix is written before the data, consuming only
+    ceil(log2(max_length + 1)) bits.
+
+    Args:
+        max_length: Maximum number of bytes
+        **kwargs: Additional Field() arguments
+
+    Example:
+        >>> class Msg(BaseMessage):
+        ...     payload: bytes = VarBytes(max_length=64)
+    """
+    return cast(FieldInfo, Field(max_length=max_length, **kwargs))
+
+
+def VarStr(*, max_length: int, **kwargs: Any) -> FieldInfo:
+    """Create a variable-length ASCII string field (0 to max_length characters).
+
+    Only ASCII characters are supported (1 byte per char). Non-ASCII raises
+    EncodeError. A compact length prefix precedes the encoded characters.
+
+    Args:
+        max_length: Maximum number of characters (= bytes, ASCII only)
+        **kwargs: Additional Field() arguments
+
+    Example:
+        >>> class Msg(BaseMessage):
+        ...     name: str = VarStr(max_length=16)
+    """
+    return cast(FieldInfo, Field(max_length=max_length, **kwargs))
+
+
+def VarList(
+    *,
+    max_length: int,
+    item_ge: int | float | None = None,
+    item_le: int | float | None = None,
+    item_precision: int | None = None,
+    **kwargs: Any,
+) -> FieldInfo:
+    """Create a variable-length list field.
+
+    Supports lists of booleans, bounded integers, or bounded floats.
+    A compact count prefix precedes the encoded elements.
+
+    Args:
+        max_length: Maximum number of elements
+        item_ge: Minimum value for each element (int/float)
+        item_le: Maximum value for each element (int/float)
+        item_precision: Decimal places for float elements (omit for int)
+        **kwargs: Additional Field() arguments
+
+    Examples:
+        >>> class Msg(BaseMessage):
+        ...     flags: List[bool] = VarList(max_length=8)
+        ...     depths: List[int] = VarList(max_length=16, item_ge=0, item_le=1000)
+        ...     temps: List[float] = VarList(
+        ...         max_length=4, item_ge=-20.0, item_le=40.0, item_precision=1
+        ...     )
+    """
+    extra: dict[str, Any] = {"varlist": True}
+    if item_ge is not None:
+        extra["item_ge"] = item_ge
+    if item_le is not None:
+        extra["item_le"] = item_le
+    if item_precision is not None:
+        extra["item_precision"] = item_precision
+    return cast(FieldInfo, Field(max_length=max_length, json_schema_extra=extra, **kwargs))
+
+
 def BoundedFloat(*, min: float, max: float, precision: int = 2, **kwargs: Any) -> FieldInfo:
     """Create a bounded float field for efficient encoding.
 

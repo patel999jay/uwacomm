@@ -45,7 +45,7 @@ from .exceptions import (
 )
 from .fragmentation import fragment_message, iter_fragments, reassemble_fragments
 from .framing import frame_message, frame_with_id, unframe_message, unframe_with_id
-from .models import BaseMessage, BoundedInt, FixedBytes, FixedStr
+from .models import BaseMessage, BoundedInt, FixedBytes, FixedStr, VarBytes, VarList, VarStr
 from .models.fields import BoundedFloat
 from .protobuf import proto_conversion_notes, to_proto_schema
 from .routing import (
@@ -68,7 +68,7 @@ from .utils import (
     verify_crc32,
 )
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     # Core API
@@ -80,6 +80,9 @@ __all__ = [
     "BoundedFloat",
     "FixedBytes",
     "FixedStr",
+    "VarBytes",
+    "VarStr",
+    "VarList",
     # Routing (Mode 2: Self-Describing Messages, Mode 3: Multi-Vehicle Routing)
     "register_message",
     "decode_by_id",

@@ -50,12 +50,14 @@ While DCCL is excellent, Python developers often want:
 - **🔀 Multi-mode encoding**: Three modes for different use cases (point-to-point, self-describing, multi-vehicle routing)
 - **📐 Float support**: DCCL-style bounded floats with precision control (50-85% bandwidth savings vs IEEE 754)
 - **🚀 Multi-vehicle routing**: Built-in source/dest addressing, priority levels, ACK support
+- **🏗️ Nested messages**: Compose `BaseMessage` fields inline with zero overhead (v0.4.0)
+- **📝 Variable-length fields**: `VarBytes`, `VarStr`, `VarList` — pay only for bytes actually sent (v0.4.0)
 - **🔒 Type-safe**: Full type hints and mypy strict mode compliance
 - **✅ Deterministic**: Platform-independent, reproducible encodings
 - **🛡️ Error detection**: Built-in CRC-16/CRC-32 and framing utilities
 - **🔄 Protobuf interop**: Generate `.proto` schemas from Pydantic models
 - **📊 Size analysis**: Calculate encoded sizes before transmission
-- **🧪 Well-tested**: 182+ passing tests, 88% code coverage
+- **🧪 Well-tested**: 224+ passing tests, 81% code coverage
 - **⚡ Benchmarked**: pytest-benchmark suite for codec, float, routing, and fragmentation throughput
 
 ---
@@ -398,6 +400,73 @@ See `examples/fragmentation_demo.py` for complete examples including out-of-orde
 
 ---
 
+## Nested Messages (v0.4.0)
+
+Compose messages by nesting one `BaseMessage` inside another. Fields are packed **inline** — no length prefix, no ID, zero overhead.
+
+```python
+from uwacomm import BaseMessage, BoundedInt, encode, decode, encoded_bits
+from uwacomm.models.fields import BoundedFloat
+from typing import ClassVar
+
+class GPSPosition(BaseMessage):
+    lat: float = BoundedFloat(min=-90.0, max=90.0, precision=6)   # 28 bits
+    lon: float = BoundedFloat(min=-180.0, max=180.0, precision=6)  # 29 bits
+
+class VehicleStatus(BaseMessage):
+    vehicle_id: int = BoundedInt(ge=0, le=255)   # 8 bits
+    position: GPSPosition                         # 57 bits inline
+    depth_cm: int = BoundedInt(ge=0, le=50000)   # 16 bits
+    battery: int = BoundedInt(ge=0, le=100)       # 7 bits
+    uwacomm_id: ClassVar[int | None] = 20
+
+print(encoded_bits(VehicleStatus))  # 88 bits = 11 bytes
+
+msg = VehicleStatus(
+    vehicle_id=7,
+    position=GPSPosition(lat=44.648766, lon=-63.575237),
+    depth_cm=1250,
+    battery=83,
+)
+decoded = decode(VehicleStatus, encode(msg))
+print(decoded.position.lat)   # 44.648766
+```
+
+Two-level nesting works too — see [`examples/nested_messages.py`](examples/nested_messages.py).
+
+---
+
+## Variable-Length Fields (v0.4.0)
+
+Three new field helpers let on-wire size scale with actual content rather than the schema maximum. Each writes a compact length prefix followed by the actual data.
+
+```python
+from uwacomm import BaseMessage, BoundedInt, encode, decode
+from uwacomm.models.fields import VarBytes, VarStr, VarList
+
+class MissionUpdate(BaseMessage):
+    vehicle_id: int = BoundedInt(ge=0, le=255)
+    callsign: str = VarStr(max_length=8)              # 4-bit prefix + ≤64 bits
+    waypoint_data: bytes = VarBytes(max_length=32)    # 6-bit prefix + ≤256 bits
+    depths: list[int] = VarList(max_length=4, item_ge=0, item_le=5000)
+
+small = MissionUpdate(vehicle_id=1, callsign="A", waypoint_data=b"\x00", depths=[0])
+large = MissionUpdate(vehicle_id=1, callsign="ORCA-001", waypoint_data=bytes(32), depths=[0,1000,2500,5000])
+
+print(len(encode(small)))  # 7 bytes
+print(len(encode(large)))  # 50 bytes
+```
+
+| Helper | Supported types | Length prefix |
+|--------|----------------|---------------|
+| `VarBytes(max_length=N)` | `bytes` | `ceil(log2(N+1))` bits |
+| `VarStr(max_length=N)` | `str` (ASCII only) | `ceil(log2(N+1))` bits |
+| `VarList(max_length=N, item_ge=, item_le=, item_precision=)` | `list[int \| bool \| float]` | `ceil(log2(N+1))` bits |
+
+See [`examples/varlen_fields.py`](examples/varlen_fields.py) for `VarList[bool]`, `VarList[float]`, and mixed messages.
+
+---
+
 ## CLI Tools
 
 ### Message Analysis
@@ -527,6 +596,10 @@ Built on Pydantic v2, uwacomm provides:
 
 See the [`examples/`](examples/) directory for complete, runnable examples:
 
+### **NEW in v0.4.0:**
+- [`nested_messages.py`](examples/nested_messages.py) – Inline nested `BaseMessage` fields (GPS position inside vehicle status, two-level nesting)
+- [`varlen_fields.py`](examples/varlen_fields.py) – `VarBytes`, `VarStr`, `VarList` — on-wire size scales with actual content
+
 ### **NEW in v0.3.0:**
 - [`hitl_simulation.py`](examples/hitl_simulation.py) - Hardware-in-the-Loop simulation with MockModemDriver
 - [`fragmentation_demo.py`](examples/fragmentation_demo.py) - Message fragmentation for size-limited acoustic modems
@@ -554,8 +627,8 @@ See the [`examples/`](examples/) directory for complete, runnable examples:
 - ✅ Fixed-length bytes
 - ✅ Fixed-length strings (UTF-8)
 - ✅ **NEW:** Floats with precision (DCCL-style bounded floats) - v0.2.0
-- ⏸️ Nested messages (planned for v0.4.0)
-- ⏸️ Variable-length arrays/strings (planned for v0.4.0)
+- ✅ **NEW:** Nested `BaseMessage` fields (inline, zero overhead) – v0.4.0
+- ✅ **NEW:** Variable-length bytes, strings, and lists (`VarBytes`, `VarStr`, `VarList`) – v0.4.0
 
 ### Encoding Modes
 

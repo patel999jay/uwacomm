@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-30
+
+### Added
+
+#### Nested Messages
+- Fields typed as `BaseMessage` subclasses are encoded **inline** (no length/ID prefix, zero overhead)
+- Two-level deep nesting supported (e.g., `Outer → Middle → Inner`)
+- `field_sizes()` reports the aggregate nested bit count as a single entry
+- Works with all three encoding modes (Mode 1/2/3)
+
+#### Variable-Length Fields
+- `VarBytes(max_length=N)` — variable-length `bytes`; writes a `ceil(log2(N+1))`-bit length prefix followed by actual bytes
+- `VarStr(max_length=N)` — ASCII `str` with compact length prefix; raises `EncodeError` for non-ASCII input
+- `VarList(max_length=N, item_ge=, item_le=, item_precision=)` — variable-length list of bounded `int`, `bool`, or `float` elements
+- On-wire size grows with actual content — an empty `VarBytes(max_length=64)` costs only the prefix bits, not 64 bytes
+- All three helpers exported from `uwacomm` top-level
+
+#### Tests & Examples
+- 42 new tests: `tests/unit/test_nested.py` (10 tests), `tests/unit/test_varlen.py` (32 tests)
+- 224 total passing tests (up from 182 in v0.3.0)
+- `examples/nested_messages.py` — nested message encoding demo with two-level nesting and Mode 2
+- `examples/varlen_fields.py` — VarBytes, VarStr, VarList[int/bool/float], and mixed message demo
+
+### Changed
+- Bumped version `0.3.0` → `0.4.0`
+- `FieldSchema` dataclass extended with 7 new fields: `is_nested`, `nested_class`, `is_varlen`, `item_min_value`, `item_max_value`, `item_precision`, `item_is_bool`
+- `bits_required()` updated to handle nested and variable-length cases before existing fixed-width logic
+- All linting (ruff, black, mypy strict) passes clean
+
 ## [0.3.0] - 2026-03-31
 
 ### Added

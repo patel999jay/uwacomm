@@ -17,7 +17,7 @@ from uwacomm.routing import MESSAGE_REGISTRY, decode_by_id, register_message
 
 
 # Test message classes
-class TestMessage(BaseMessage):
+class SimpleMessage(BaseMessage):
     """Simple test message with ID < 128."""
 
     value: int = BoundedInt(ge=0, le=255)
@@ -51,7 +51,7 @@ class TestMode1PointToPoint:
 
     def test_mode1_minimal_overhead(self):
         """Mode 1: Point-to-point encoding has minimal overhead."""
-        msg = TestMessage(value=123)
+        msg = SimpleMessage(value=123)
 
         # Encode without ID (Mode 1 - default)
         encoded = encode(msg)
@@ -60,15 +60,15 @@ class TestMode1PointToPoint:
         assert len(encoded) == 1
 
         # Decode requires knowing message type
-        decoded = decode(TestMessage, encoded)
+        decoded = decode(SimpleMessage, encoded)
         assert decoded.value == 123
 
     def test_mode1_roundtrip(self):
         """Mode 1: Full roundtrip verification."""
-        original = TestMessage(value=200)
+        original = SimpleMessage(value=200)
 
         encoded = encode(original)
-        decoded = decode(TestMessage, encoded)
+        decoded = decode(SimpleMessage, encoded)
 
         assert decoded == original
         assert decoded.value == 200
@@ -76,13 +76,13 @@ class TestMode1PointToPoint:
     def test_mode1_backward_compatible(self):
         """Mode 1: Existing code continues to work (backward compatibility)."""
         # Existing code that doesn't use include_id should work unchanged
-        msg = TestMessage(value=50)
+        msg = SimpleMessage(value=50)
 
         # Old-style encoding (implicit Mode 1)
         encoded = encode(msg)
 
         # Old-style decoding
-        decoded = decode(TestMessage, encoded)
+        decoded = decode(SimpleMessage, encoded)
 
         assert decoded.value == 50
 
@@ -97,7 +97,7 @@ class TestMode2SelfDescribing:
 
     def test_mode2_basic_encoding(self):
         """Mode 2: Encode with message ID."""
-        msg = TestMessage(value=123)
+        msg = SimpleMessage(value=123)
 
         # Encode with ID (Mode 2)
         encoded = encode(msg, include_id=True)
@@ -107,13 +107,13 @@ class TestMode2SelfDescribing:
         assert len(encoded) == 2
 
         # Decode with ID validation
-        decoded = decode(TestMessage, encoded, include_id=True)
+        decoded = decode(SimpleMessage, encoded, include_id=True)
         assert decoded.value == 123
 
     def test_mode2_id_size_optimization(self):
         """Mode 2: Message IDs < 128 use 1 byte, >= 128 use 2 bytes."""
         # Small ID (< 128): 1 byte ID
-        msg_small = TestMessage(value=50)
+        msg_small = SimpleMessage(value=50)
         encoded_small = encode(msg_small, include_id=True)
         assert len(encoded_small) == 2  # 1 byte ID + 1 byte payload
 
@@ -124,11 +124,11 @@ class TestMode2SelfDescribing:
 
     def test_mode2_id_validation(self):
         """Mode 2: Decoder validates message ID matches expected class."""
-        msg = TestMessage(value=100)
+        msg = SimpleMessage(value=100)
         encoded = encode(msg, include_id=True)
 
         # Correct class: should decode successfully
-        decoded = decode(TestMessage, encoded, include_id=True)
+        decoded = decode(SimpleMessage, encoded, include_id=True)
         assert decoded.value == 100
 
         # Wrong class: should raise DecodeError (ID mismatch)
@@ -145,10 +145,10 @@ class TestMode2SelfDescribing:
 
     def test_mode2_roundtrip_with_id(self):
         """Mode 2: Full roundtrip with ID validation."""
-        original = TestMessage(value=175)
+        original = SimpleMessage(value=175)
 
         encoded = encode(original, include_id=True)
-        decoded = decode(TestMessage, encoded, include_id=True)
+        decoded = decode(SimpleMessage, encoded, include_id=True)
 
         assert decoded == original
         assert decoded.value == 175
@@ -168,24 +168,24 @@ class TestAutoDecodeById:
 
     def test_register_message(self):
         """Register message classes for auto-decode."""
-        register_message(TestMessage)
-        assert TestMessage.uwacomm_id in MESSAGE_REGISTRY
-        assert MESSAGE_REGISTRY[TestMessage.uwacomm_id] is TestMessage
+        register_message(SimpleMessage)
+        assert SimpleMessage.uwacomm_id in MESSAGE_REGISTRY
+        assert MESSAGE_REGISTRY[SimpleMessage.uwacomm_id] is SimpleMessage
 
     def test_register_duplicate_allowed(self):
         """Registering the same class twice is a no-op."""
-        register_message(TestMessage)
-        register_message(TestMessage)  # Should not raise error
-        assert MESSAGE_REGISTRY[TestMessage.uwacomm_id] is TestMessage
+        register_message(SimpleMessage)
+        register_message(SimpleMessage)  # Should not raise error
+        assert MESSAGE_REGISTRY[SimpleMessage.uwacomm_id] is SimpleMessage
 
     def test_register_conflict_raises_error(self):
         """Registering different classes with same ID raises error."""
-        register_message(TestMessage)
+        register_message(SimpleMessage)
 
         # Create a different class with the same ID
         class ConflictMessage(BaseMessage):
             other_field: int = BoundedInt(ge=0, le=100)
-            uwacomm_id: ClassVar[int | None] = 42  # Same as TestMessage
+            uwacomm_id: ClassVar[int | None] = 42  # Same as SimpleMessage
 
         with pytest.raises(ValueError, match="already registered"):
             register_message(ConflictMessage)
@@ -197,24 +197,24 @@ class TestAutoDecodeById:
 
     def test_decode_by_id_basic(self):
         """Auto-decode message by ID."""
-        register_message(TestMessage)
+        register_message(SimpleMessage)
 
-        msg = TestMessage(value=123)
+        msg = SimpleMessage(value=123)
         encoded = encode(msg, include_id=True)
 
         # Auto-decode without knowing the type
         decoded = decode_by_id(encoded)
 
-        assert isinstance(decoded, TestMessage)
+        assert isinstance(decoded, SimpleMessage)
         assert decoded.value == 123
 
     def test_decode_by_id_multiple_types(self):
         """Auto-decode with multiple registered message types."""
-        register_message(TestMessage)
+        register_message(SimpleMessage)
         register_message(LargeIdMessage)
 
         # Encode two different message types
-        msg1 = TestMessage(value=50)
+        msg1 = SimpleMessage(value=50)
         msg2 = LargeIdMessage(value=100)
 
         encoded1 = encode(msg1, include_id=True)
@@ -224,7 +224,7 @@ class TestAutoDecodeById:
         decoded1 = decode_by_id(encoded1)
         decoded2 = decode_by_id(encoded2)
 
-        assert isinstance(decoded1, TestMessage)
+        assert isinstance(decoded1, SimpleMessage)
         assert decoded1.value == 50
 
         assert isinstance(decoded2, LargeIdMessage)
@@ -232,7 +232,7 @@ class TestAutoDecodeById:
 
     def test_decode_by_id_unknown_id_raises_error(self):
         """Auto-decode with unknown ID raises helpful error."""
-        register_message(TestMessage)
+        register_message(SimpleMessage)
 
         # Encode a message type that's not registered
         msg = LargeIdMessage(value=75)
@@ -244,7 +244,7 @@ class TestAutoDecodeById:
     def test_decode_by_id_empty_registry_raises_error(self):
         """Auto-decode without any registered messages raises error."""
         # Don't register anything
-        msg = TestMessage(value=50)
+        msg = SimpleMessage(value=50)
         encoded = encode(msg, include_id=True)
 
         with pytest.raises(DecodeError, match="Unknown message ID"):
@@ -261,7 +261,7 @@ class TestEdgeCases:
 
     def test_mode1_with_id_attribute_ignored(self):
         """Mode 1: uwacomm_id attribute is ignored when not using include_id."""
-        msg = TestMessage(value=99)
+        msg = SimpleMessage(value=99)
 
         # Mode 1 encoding should ignore uwacomm_id
         encoded = encode(msg)
@@ -269,20 +269,20 @@ class TestEdgeCases:
         # Should be minimal size (no ID included)
         assert len(encoded) == 1
 
-        decoded = decode(TestMessage, encoded)
+        decoded = decode(SimpleMessage, encoded)
         assert decoded.value == 99
 
     def test_mode2_truncated_data_raises_error(self):
         """Mode 2: Truncated data raises DecodeError."""
         # Create valid encoded data
-        msg = TestMessage(value=123)
+        msg = SimpleMessage(value=123)
         encoded = encode(msg, include_id=True)
 
         # Truncate it
         truncated = encoded[:1]
 
         with pytest.raises(DecodeError, match="Truncated"):
-            decode(TestMessage, truncated, include_id=True)
+            decode(SimpleMessage, truncated, include_id=True)
 
     def test_invalid_id_range_raises_error(self):
         """Message ID must be 0-32767."""
@@ -312,7 +312,7 @@ class TestBandwidthComparison:
 
     def test_mode_overhead_comparison(self):
         """Compare message sizes across modes."""
-        msg = TestMessage(value=123)
+        msg = SimpleMessage(value=123)
 
         # Mode 1: No overhead
         encoded_mode1 = encode(msg)
@@ -348,7 +348,7 @@ class TestMode3MultiVehicleRouting:
         """Mode 3: Basic routing encode/decode."""
         from uwacomm.routing import decode_with_routing, encode_with_routing
 
-        msg = TestMessage(value=123)
+        msg = SimpleMessage(value=123)
 
         # Encode with routing (Vehicle 3 → Topside 0)
         encoded = encode_with_routing(msg, source_id=3, dest_id=0, priority=2, ack_requested=True)
@@ -358,7 +358,7 @@ class TestMode3MultiVehicleRouting:
         assert len(encoded) == 5  # 3 routing + 1 ID + 1 payload
 
         # Decode with routing
-        routing, decoded = decode_with_routing(TestMessage, encoded)
+        routing, decoded = decode_with_routing(SimpleMessage, encoded)
 
         assert routing.source_id == 3
         assert routing.dest_id == 0
@@ -393,11 +393,11 @@ class TestMode3MultiVehicleRouting:
         """Mode 3: Different priority levels work correctly."""
         from uwacomm.routing import decode_with_routing, encode_with_routing
 
-        msg = TestMessage(value=100)
+        msg = SimpleMessage(value=100)
 
         for priority in range(4):  # 0-3
             encoded = encode_with_routing(msg, source_id=5, dest_id=10, priority=priority)
-            routing, decoded = decode_with_routing(TestMessage, encoded)
+            routing, decoded = decode_with_routing(SimpleMessage, encoded)
 
             assert routing.priority == priority
             assert decoded.value == 100
@@ -406,11 +406,11 @@ class TestMode3MultiVehicleRouting:
         """Mode 3: Broadcast destination (dest_id=255) works."""
         from uwacomm.routing import decode_with_routing, encode_with_routing
 
-        msg = TestMessage(value=99)
+        msg = SimpleMessage(value=99)
 
         # Broadcast to all vehicles (dest_id=255)
         encoded = encode_with_routing(msg, source_id=1, dest_id=255, priority=3)
-        routing, decoded = decode_with_routing(TestMessage, encoded)
+        routing, decoded = decode_with_routing(SimpleMessage, encoded)
 
         assert routing.source_id == 1
         assert routing.dest_id == 255  # Broadcast
@@ -420,29 +420,29 @@ class TestMode3MultiVehicleRouting:
         """Mode 3: ACK requested flag works correctly."""
         from uwacomm.routing import decode_with_routing, encode_with_routing
 
-        msg = TestMessage(value=50)
+        msg = SimpleMessage(value=50)
 
         # ACK not requested
         encoded_no_ack = encode_with_routing(msg, source_id=2, dest_id=0, ack_requested=False)
-        routing_no_ack, _ = decode_with_routing(TestMessage, encoded_no_ack)
+        routing_no_ack, _ = decode_with_routing(SimpleMessage, encoded_no_ack)
         assert routing_no_ack.ack_requested is False
 
         # ACK requested
         encoded_ack = encode_with_routing(msg, source_id=2, dest_id=0, ack_requested=True)
-        routing_ack, _ = decode_with_routing(TestMessage, encoded_ack)
+        routing_ack, _ = decode_with_routing(SimpleMessage, encoded_ack)
         assert routing_ack.ack_requested is True
 
     def test_mode3_roundtrip_preserves_all_data(self):
         """Mode 3: Full roundtrip preserves routing and message data."""
         from uwacomm.routing import decode_with_routing, encode_with_routing
 
-        original_msg = TestMessage(value=175)
+        original_msg = SimpleMessage(value=175)
 
         encoded = encode_with_routing(
             original_msg, source_id=7, dest_id=3, priority=1, ack_requested=True
         )
 
-        routing, decoded_msg = decode_with_routing(TestMessage, encoded)
+        routing, decoded_msg = decode_with_routing(SimpleMessage, encoded)
 
         # Verify routing header
         assert routing.source_id == 7
@@ -458,7 +458,7 @@ class TestMode3MultiVehicleRouting:
         """Mode 3: Routing mode automatically includes message ID."""
         from uwacomm.routing import encode_with_routing
 
-        msg = TestMessage(value=123)
+        msg = SimpleMessage(value=123)
 
         # Mode 3 should automatically include message ID
         encoded = encode_with_routing(msg, source_id=1, dest_id=2)
@@ -470,7 +470,7 @@ class TestMode3MultiVehicleRouting:
         MESSAGE_REGISTRY.clear()
         from uwacomm.routing import register_message
 
-        register_message(TestMessage)
+        register_message(SimpleMessage)
 
         # Skip routing header to get to the message ID + payload
         # Routing: 19 bits = 3 bytes (rounded up)
@@ -486,23 +486,23 @@ class TestMode3MultiVehicleRouting:
         """Mode 3: Multiple vehicles can send to each other."""
         from uwacomm.routing import decode_with_routing, encode_with_routing
 
-        msg1 = TestMessage(value=10)
-        msg2 = TestMessage(value=20)
-        msg3 = TestMessage(value=30)
+        msg1 = SimpleMessage(value=10)
+        msg2 = SimpleMessage(value=20)
+        msg3 = SimpleMessage(value=30)
 
         # Vehicle 1 → Vehicle 2
         enc1 = encode_with_routing(msg1, source_id=1, dest_id=2)
-        r1, d1 = decode_with_routing(TestMessage, enc1)
+        r1, d1 = decode_with_routing(SimpleMessage, enc1)
         assert r1.source_id == 1 and r1.dest_id == 2 and d1.value == 10
 
         # Vehicle 2 → Vehicle 3
         enc2 = encode_with_routing(msg2, source_id=2, dest_id=3)
-        r2, d2 = decode_with_routing(TestMessage, enc2)
+        r2, d2 = decode_with_routing(SimpleMessage, enc2)
         assert r2.source_id == 2 and r2.dest_id == 3 and d2.value == 20
 
         # Vehicle 3 → Topside (ID 0)
         enc3 = encode_with_routing(msg3, source_id=3, dest_id=0)
-        r3, d3 = decode_with_routing(TestMessage, enc3)
+        r3, d3 = decode_with_routing(SimpleMessage, enc3)
         assert r3.source_id == 3 and r3.dest_id == 0 and d3.value == 30
 
 
@@ -518,7 +518,7 @@ class TestAllModesComparison:
         """Compare sizes across all three modes."""
         from uwacomm.routing import encode_with_routing
 
-        msg = TestMessage(value=100)
+        msg = SimpleMessage(value=100)
 
         # Mode 1: Point-to-point (minimal)
         mode1 = encode(msg)
@@ -542,21 +542,21 @@ class TestAllModesComparison:
         """All three modes correctly preserve message data."""
         from uwacomm.routing import decode_with_routing, encode_with_routing
 
-        original = TestMessage(value=123)
+        original = SimpleMessage(value=123)
 
         # Mode 1
         enc1 = encode(original)
-        dec1 = decode(TestMessage, enc1)
+        dec1 = decode(SimpleMessage, enc1)
         assert dec1 == original
 
         # Mode 2
         enc2 = encode(original, include_id=True)
-        dec2 = decode(TestMessage, enc2, include_id=True)
+        dec2 = decode(SimpleMessage, enc2, include_id=True)
         assert dec2 == original
 
         # Mode 3
         enc3 = encode_with_routing(original, source_id=5, dest_id=10)
-        routing, dec3 = decode_with_routing(TestMessage, enc3)
+        routing, dec3 = decode_with_routing(SimpleMessage, enc3)
         assert dec3 == original
         assert routing.source_id == 5
         assert routing.dest_id == 10
